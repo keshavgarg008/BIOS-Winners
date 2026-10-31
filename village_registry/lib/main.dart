@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'database_helper.dart';
 
 void main() async {
-  // Required to make sure Flutter is ready before calling Firebase
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Connects to your Firebase project using the generated file
+  // Connects to your Firebase project
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -38,7 +38,7 @@ class VillageRegistryApp extends StatelessWidget {
 }
 
 // ==========================================
-// SCREEN 1: THE OFFLINE PIN LOCK
+// SCREEN 1: FIREBASE CLOUD LOGIN
 // ==========================================
 class OfflineLoginScreen extends StatefulWidget {
   const OfflineLoginScreen({super.key});
@@ -48,25 +48,33 @@ class OfflineLoginScreen extends StatefulWidget {
 }
 
 class _OfflineLoginScreenState extends State<OfflineLoginScreen> {
-  final TextEditingController _pinController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  void _verifyPin() async {
+  void _loginToFirebase() async {
     setState(() => _isLoading = true);
-    // Simulate local hash comparison delay
-    await Future.delayed(const Duration(milliseconds: 500)); 
     
-    if (_pinController.text == '1234') { 
+    try {
+      // Connects to Firebase to verify the worker's credentials
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const DashboardScreen()),
       );
-    } else {
+    } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid PIN. Try again.')),
+        SnackBar(
+          content: Text(e.message ?? 'Login failed. Check credentials.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -76,52 +84,55 @@ class _OfflineLoginScreenState extends State<OfflineLoginScreen> {
     return Scaffold(
       backgroundColor: Colors.teal,
       body: Center(
-        child: Card(
-          margin: const EdgeInsets.all(32.0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.security, size: 64, color: Colors.teal),
-                const SizedBox(height: 16),
-                const Text(
-                  'Secure Offline Login',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Jalandhar District Health Worker',
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 32),
-                TextField(
-                  controller: _pinController,
-                  keyboardType: TextInputType.number,
-                  obscureText: true,
-                  maxLength: 4,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 24, letterSpacing: 8),
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'PIN',
-                    counterText: '',
+        child: SingleChildScrollView(
+          child: Card(
+            margin: const EdgeInsets.all(32.0),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_sync, size: 64, color: Colors.teal),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Worker Portal',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _verifyPin,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                    child: _isLoading 
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Unlock Database', style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 32),
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _loginToFirebase,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                      child: _isLoading 
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Log In via Firebase', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
