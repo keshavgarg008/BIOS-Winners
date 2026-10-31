@@ -54,7 +54,7 @@ class _OfflineLoginScreenState extends State<OfflineLoginScreen> {
       );
     } else {
       setState(() => _isLoading = false);
-      if (!mounted) return; // Fixes the async gap warning
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Invalid PIN. Try again.')),
       );
