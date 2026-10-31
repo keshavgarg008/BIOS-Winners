@@ -1,310 +1,126 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'firebase_options.dart';
-import 'database_helper.dart';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JeevanSetu – Child vaccination and development records</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="home">
+  <a class="skip" href="#main" data-i18n="skip">Skip to main content</a>
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Connects to your Firebase project
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
-  runApp(const VillageRegistryApp());
-}
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
+        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
+          <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
+          <rect x="0" y="150" width="200" height="14" fill="#138808"/>
+        </svg>
+        <span class="brand-text">
+          <strong>JeevanSetu</strong>
+          <span data-i18n="tagline">Child vaccination and development records</span>
+        </span>
+      </a>
+      <nav aria-label="Main">
+        <a href="#main" data-i18n="nav_home">Home</a>
+        <a href="#roles" data-i18n="nav_roles">Who it is for</a>
+        <a href="#about" data-i18n="nav_about">About</a>
+        <a href="register.html" data-i18n="nav_register">Register</a>
 
-class VillageRegistryApp extends StatelessWidget {
-  const VillageRegistryApp({super.key});
+        <div class="font-size" role="group" aria-label="Text size">
+          <button type="button" id="font-down" aria-label="Decrease text size">A&minus;</button>
+          <button type="button" id="font-reset" aria-label="Reset text size">A</button>
+          <button type="button" id="font-up" aria-label="Increase text size">A+</button>
+        </div>
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Village Health Registry',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-        scaffoldBackgroundColor: Colors.grey[100],
-        appBarTheme: const AppBarTheme(
-          elevation: 0,
-          backgroundColor: Colors.teal,
-          centerTitle: true,
-        ),
-      ),
-      home: const OfflineLoginScreen(),
-    );
-  }
-}
+        <div class="lang-select">
+          <label for="lang" class="sr-only">Language</label>
+          <select id="lang" name="lang">
+            <option value="en">English</option>
+            <option value="hi">हिन्दी</option>
+            <option value="pa">ਪੰਜਾਬੀ</option>
+          </select>
+        </div>
+      </nav>
+    </div>
+  </header>
 
-// ==========================================
-// SCREEN 1: FIREBASE CLOUD LOGIN
-// ==========================================
-class OfflineLoginScreen extends StatefulWidget {
-  const OfflineLoginScreen({super.key});
+  <main id="main">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-text">
+          <h1 data-i18n="hero_title">Every child’s vaccines and milestones, on track.</h1>
+          <p data-i18n="hero_text">Sign in to see which vaccines are due, record visits, and keep each child’s record in one place. Built to keep working when the network does not.</p>
+          <a class="primary-link" href="register.html" data-i18n="register_btn">Register now</a>
+        </div>
 
-  @override
-  State<OfflineLoginScreen> createState() => _OfflineLoginScreenState();
-}
+        <section class="login-card" aria-labelledby="login-title">
+          <h2 id="login-title" data-i18n="signin">Sign in</h2>
 
-class _OfflineLoginScreenState extends State<OfflineLoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
+          <form id="login-form" novalidate>
+            <div class="field">
+              <label for="uid" data-i18n="uid_label">Unique ID</label>
+              <input id="uid" name="uid" type="text" autocomplete="username"
+                     autocapitalize="characters" spellcheck="false"
+                     placeholder="For example, GS-P-7K3Q-9XMD" data-i18n-placeholder="uid_ph">
+              <p class="hint" data-i18n="uid_hint">You get this ID when you register. It opens the right page for you.</p>
+            </div>
 
-  void _loginToFirebase() async {
-    setState(() => _isLoading = true);
-    
-    try {
-      // Connects to Firebase to verify the worker's credentials
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
-      );
-    } on FirebaseAuthException catch (e) {
-      setState(() => _isLoading = false);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message ?? 'Login failed. Check credentials.'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    }
-  }
+            <div class="field">
+              <label for="password" data-i18n="password">Password</label>
+              <input id="password" name="password" type="password" autocomplete="current-password">
+            </div>
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.teal,
-      body: Center(
-        child: SingleChildScrollView(
-          child: Card(
-            margin: const EdgeInsets.all(32.0),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.cloud_sync, size: 64, color: Colors.teal),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Worker Portal',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 32),
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _loginToFirebase,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                      child: _isLoading 
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('Log In via Firebase', style: TextStyle(fontSize: 16)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+            <p class="error" id="form-error" role="alert" hidden></p>
 
-// ==========================================
-// SCREEN 2: THE WORKER DASHBOARD
-// ==========================================
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+            <button type="submit" class="primary" data-i18n="signin_btn">Sign in</button>
+          </form>
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Village Patient Roster'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Row(
-              children: const [
-                Icon(Icons.cloud_off, color: Colors.redAccent, size: 18),
-                SizedBox(width: 8),
-                Text('Offline Mode'),
-              ],
-            ),
-          )
-        ],
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: 3, 
-        itemBuilder: (context, index) {
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.teal[100],
-                child: const Icon(Icons.person, color: Colors.teal),
-              ),
-              title: Text('Student/Patient 00${index + 1}'),
-              subtitle: const Text('Last synced: 2 days ago'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AddRecordScreen()),
-                );
-              },
-            ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Searching for network to sync events...')),
-          );
-        },
-        icon: const Icon(Icons.sync),
-        label: const Text('Sync Queued Events'),
-        backgroundColor: Colors.teal,
-      ),
-    );
-  }
-}
+          <p class="switch"><span data-i18n="new_here">New here?</span> <a href="register.html" data-i18n="register_link">Register</a></p>
+        </section>
+      </div>
+    </section>
 
-// ==========================================
-// SCREEN 3: OFFLINE DATA ENTRY FORM
-// ==========================================
-class AddRecordScreen extends StatefulWidget {
-  const AddRecordScreen({super.key});
+    <section class="section" id="roles">
+      <div class="wrap">
+        <h2 data-i18n="roles_title">Who it is for</h2>
+        <div class="grid-4">
+          <article class="info">
+            <h3 data-i18n="card_parent_h">Parents</h3>
+            <p data-i18n="card_parent_p">See your child’s health records, academic records, vaccine schedule and reminders.</p>
+          </article>
+          <article class="info">
+            <h3 data-i18n="card_asha_h">ASHA workers</h3>
+            <p data-i18n="card_asha_p">See who to visit today and record doses and checks in the field.</p>
+          </article>
+          <article class="info">
+            <h3 data-i18n="card_doctor_h">Doctors</h3>
+            <p data-i18n="card_doctor_p">Review clinic records and settle conflicting entries.</p>
+          </article>
+          <article class="info">
+            <h3 data-i18n="card_teacher_h">Teachers</h3>
+            <p data-i18n="card_teacher_p">Support school health checks and share results with families.</p>
+          </article>
+        </div>
+      </div>
+    </section>
 
-  @override
-  State<AddRecordScreen> createState() => _AddRecordScreenState();
-}
+    <section class="section alt" id="about">
+      <div class="wrap narrow">
+        <h2 data-i18n="about_title">About Gaon Setu</h2>
+        <p data-i18n="about_text">Gaon Setu is an offline-first child welfare record management app that helps clinics, community health workers, and schools maintain and access children's records without internet connectivity. Each device stores records locally, allowing users to continue working independently. When devices reconnect, changes are synchronized and safely merged ensuring that no important information is silently lost.</p>
+      </div>
+    </section>
+  </main>
 
-class _AddRecordScreenState extends State<AddRecordScreen> {
-  String _selectedVaccine = 'Measles-Rubella (MR)';
+  <footer class="site-footer">
+    <div class="wrap">
+      <p data-i18n="footer">Made with ♡ by Jeevansetu</p>
+    </div>
+  </footer>
 
-  void _saveOfflineEvent() async {
-    final recordData = {
-      'vaccine': _selectedVaccine,
-      'administered_by': 'worker_jalandhar_01',
-      'timestamp': DateTime.now().toIso8601String(),
-    };
-
-    await DatabaseHelper.instance.insertEvent(
-      eventType: 'vaccination',
-      payload: recordData,
-    );
-
-    if (!mounted) return;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Event saved locally! Ready for background sync.'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Log Clinical Event'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Record New Vaccination',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'This data will be securely saved to the local SQLite log and uploaded when a connection is found.',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 32),
-            const Text('Select Vaccine Type', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade400),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedVaccine,
-                  isExpanded: true,
-                  items: <String>['Measles-Rubella (MR)', 'Polio (OPV)', 'DPT Booster']
-                      .map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      _selectedVaccine = newValue!;
-                    });
-                  },
-                ),
-              ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton.icon(
-                onPressed: _saveOfflineEvent,
-                icon: const Icon(Icons.save_alt),
-                label: const Text('Commit Offline Event', style: TextStyle(fontSize: 18)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+  <script src="settings.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
