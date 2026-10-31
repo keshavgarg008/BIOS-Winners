@@ -1,121 +1,291 @@
 import 'package:flutter/material.dart';
+import 'database_helper.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const VillageRegistryApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class VillageRegistryApp extends StatelessWidget {
+  const VillageRegistryApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Village Health Registry',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        primarySwatch: Colors.teal,
+        scaffoldBackgroundColor: Colors.grey[100],
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          backgroundColor: Colors.teal,
+          centerTitle: true,
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const OfflineLoginScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+// ==========================================
+// SCREEN 1: THE OFFLINE PIN LOCK
+// ==========================================
+class OfflineLoginScreen extends StatefulWidget {
+  const OfflineLoginScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<OfflineLoginScreen> createState() => _OfflineLoginScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _OfflineLoginScreenState extends State<OfflineLoginScreen> {
+  final TextEditingController _pinController = TextEditingController();
+  bool _isLoading = false;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  void _verifyPin() async {
+    setState(() => _isLoading = true);
+    // Simulate local hash comparison delay
+    await Future.delayed(const Duration(milliseconds: 500)); 
+    
+    if (_pinController.text == '1234') { 
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
+    } else {
+      setState(() => _isLoading = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid PIN. Try again.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    return Scaffold(
+      backgroundColor: Colors.teal,
+      body: Center(
+        child: Card(
+          margin: const EdgeInsets.all(32.0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.security, size: 64, color: Colors.teal),
+                const SizedBox(height: 16),
+                const Text(
+                  'Secure Offline Login',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Jalandhar District Health Worker',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 32),
+                TextField(
+                  controller: _pinController,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  maxLength: 4,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 24, letterSpacing: 8),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'PIN',
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _verifyPin,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                    child: _isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Unlock Database', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// SCREEN 2: THE WORKER DASHBOARD
+// ==========================================
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('Village Patient Roster'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Row(
+              children: const [
+                Icon(Icons.cloud_off, color: Colors.redAccent, size: 18),
+                SizedBox(width: 8),
+                Text('Offline Mode'),
+              ],
+            ),
+          )
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 3, // Dummy data count for now
+        itemBuilder: (context, index) {
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.teal[100],
+                child: const Icon(Icons.person, color: Colors.teal),
+              ),
+              title: Text('Student/Patient 00${index + 1}'),
+              subtitle: const Text('Last synced: 2 days ago'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddRecordScreen()),
+                );
+              },
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Searching for network to sync events...')),
+          );
+        },
+        icon: const Icon(Icons.sync),
+        label: const Text('Sync Queued Events'),
+        backgroundColor: Colors.teal,
+      ),
+    );
+  }
+}
+
+// ==========================================
+// SCREEN 3: OFFLINE DATA ENTRY FORM
+// ==========================================
+class AddRecordScreen extends StatefulWidget {
+  const AddRecordScreen({super.key});
+
+  @override
+  State<AddRecordScreen> createState() => _AddRecordScreenState();
+}
+
+class _AddRecordScreenState extends State<AddRecordScreen> {
+  String _selectedVaccine = 'Measles-Rubella (MR)';
+
+  void _saveOfflineEvent() async {
+    // 1. Create a dummy JSON payload for the health record
+    final recordData = {
+      'vaccine': _selectedVaccine,
+      'administered_by': 'worker_jalandhar_01',
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    // 2. Save it to the local SQLite database
+    await DatabaseHelper.instance.insertEvent(
+      eventType: 'vaccination',
+      payload: recordData,
+    );
+
+    if (!mounted) return;
+    
+    // 3. Show success message and go back to dashboard
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Event saved locally! Ready for background sync.'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Log Clinical Event'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            const Text(
+              'Record New Vaccination',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'This data will be securely saved to the local SQLite log and uploaded when a connection is found.',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 32),
+            const Text('Select Vaccine Type', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade400),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedVaccine,
+                  isExpanded: true,
+                  items: <String>['Measles-Rubella (MR)', 'Polio (OPV)', 'DPT Booster']
+                      .map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedVaccine = newValue!;
+                    });
+                  },
+                ),
+              ),
+            ),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton.icon(
+                onPressed: _saveOfflineEvent,
+                icon: const Icon(Icons.save_alt),
+                label: const Text('Commit Offline Event', style: TextStyle(fontSize: 18)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
