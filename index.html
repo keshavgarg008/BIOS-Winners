@@ -1,11 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal Health & Immunization Portal</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+  <header class="app-header">
+    <div class="logo">
+      <span class="logo-icon">+</span>
+      <h1>Universal Health & Immunization Registry</h1>
+    </div>
+    <div class="sync-status online">
+      <span class="status-dot"></span> Offline-Ready Sync Engine Active
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h2>Select Your Role to Access Portal</h2>
+      <p>Secure, offline-first health record management system for clinics, community workers, schools, and families.</p>
+    </section>
+
+    <section class="role-grid">
+      <!-- Parent Portal Card -->
+      <div class="role-card">
+        <div class="role-icon">👨‍👩‍👧</div>
+        <h3>Parent / Guardian</h3>
+        <p>View child immunization schedules, digital health cards, and record updates.</p>
+        <a href="parent.html" class="btn btn-primary">Login as Parent</a>
+      </div>
+
+      <!-- Health Worker Portal Card -->
+      <div class="role-card">
+        <div class="role-icon">🩺</div>
+        <h3>ASHA / Health Worker</h3>
+        <p>Record field visits, log vaccine doses offline, and resolve sync conflicts.</p>
+        <a href="healthworker.html" class="btn btn-secondary">Login as ASHA Worker</a>
+      </div>
+
+      <!-- Doctor / Clinic Portal Card -->
+      <div class="role-card">
+        <div class="role-icon">🏥</div>
+        <h3>Doctor / Clinic</h3>
+        <p>Review clinical records, approve medical overrides, and manage treatments.</p>
+        <a href="clinic.html" class="btn btn-tertiary">Login as Doctor</a>
+      </div>
+
+      <!-- Teacher Portal Card -->
+      <div class="role-card">
+        <div class="role-icon">🏫</div>
+        <h3>Village Teacher</h3>
+        <p>Monitor school-wide health checks, submit attendance & vaccination logs.</p>
+        <a href="school.html" class="btn btn-quaternary">Login as Teacher</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>&copy; 2026 Offline-First Healthcare Registry. Conflict-Safe Operations Guaranteed.</p>
+  </footer>
 </body>
 </html>
