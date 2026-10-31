@@ -2,64 +2,113 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Universal Health & Immunization Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gaon Setu – Gaon walon ke liye app</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <header class="app-header">
-    <div class="logo">
-      <span class="logo-icon">+</span>
-      <h1>Universal Health & Immunization Registry</h1>
-    </div>
-    <div class="sync-status online">
-      <span class="status-dot"></span> Offline-Ready Sync Engine Active
+<body data-page="home">
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <div class="notice">
+    Prototype built for a hackathon. This is not an official government portal.
+  </div>
+
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="index.html" aria-label="Gaon Setu home">
+        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
+          <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
+          <rect x="0" y="150" width="200" height="14" fill="#138808"/>
+        </svg>
+        <span class="brand-text">
+          <strong>Gaon Setu</strong>
+          <span>Gaon walon ke liye app</span>
+        </span>
+      </a>
+      <nav aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="register.html">Register</a>
+        <a href="#about">About</a>
+      </nav>
     </div>
   </header>
 
-  <main class="container">
+  <main id="main">
     <section class="hero">
-      <h2>Select Your Role to Access Portal</h2>
-      <p>Secure, offline-first health record management system for clinics, community workers, schools, and families.</p>
+      <div class="wrap hero-grid">
+        <div class="hero-text">
+          <h1>Every child’s vaccines and milestones, on track.</h1>
+          <p>Register once to get your unique ID. Then sign in with that ID and go straight to your own page. Built to keep working when the network does not.</p>
+          <a class="primary-link" href="register.html">Register now</a>
+        </div>
+
+        <section class="login-card" aria-labelledby="login-title">
+          <h2 id="login-title">Sign in</h2>
+
+          <form id="login-form" novalidate>
+            <div class="field">
+              <label for="uid">Unique ID</label>
+              <input id="uid" name="uid" type="text" autocomplete="username"
+                     autocapitalize="characters" spellcheck="false"
+                     placeholder="For example, GS-P-7K3Q-9XMD">
+              <p class="hint">You get this ID when you register. It opens the right page for you.</p>
+            </div>
+
+            <div class="field">
+              <label for="password">Password</label>
+              <input id="password" name="password" type="password" autocomplete="current-password">
+            </div>
+
+            <p class="error" id="form-error" role="alert" hidden></p>
+
+            <button type="submit" class="primary">Sign in</button>
+          </form>
+
+          <p class="switch">New to Gaon Setu? <a href="register.html">Register</a></p>
+          <p class="demo-note">Prototype: accounts are saved in this browser only, and passwords are not sent anywhere.</p>
+        </section>
+      </div>
     </section>
 
-    <section class="role-grid">
-      <!-- Parent Portal Card -->
-      <div class="role-card">
-        <div class="role-icon">👨‍👩‍👧</div>
-        <h3>Parent / Guardian</h3>
-        <p>View child immunization schedules, digital health cards, and record updates.</p>
-        <a href="parent.html" class="btn btn-primary">Login as Parent</a>
+    <section class="section" id="roles">
+      <div class="wrap">
+        <h2>Who can register</h2>
+        <div class="grid-4">
+          <article class="info">
+            <h3>Parents</h3>
+            <p>See your child’s vaccine schedule, milestones and reminders.</p>
+          </article>
+          <article class="info">
+            <h3>ASHA workers</h3>
+            <p>See who to visit today and record doses and checks in the field.</p>
+          </article>
+          <article class="info">
+            <h3>Doctors</h3>
+            <p>Review clinic records and settle conflicting entries.</p>
+          </article>
+          <article class="info">
+            <h3>Teachers</h3>
+            <p>Support school health checks and share results with families.</p>
+          </article>
+        </div>
       </div>
+    </section>
 
-      <!-- Health Worker Portal Card -->
-      <div class="role-card">
-        <div class="role-icon">🩺</div>
-        <h3>ASHA / Health Worker</h3>
-        <p>Record field visits, log vaccine doses offline, and resolve sync conflicts.</p>
-        <a href="healthworker.html" class="btn btn-secondary">Login as ASHA Worker</a>
-      </div>
-
-      <!-- Doctor / Clinic Portal Card -->
-      <div class="role-card">
-        <div class="role-icon">🏥</div>
-        <h3>Doctor / Clinic</h3>
-        <p>Review clinical records, approve medical overrides, and manage treatments.</p>
-        <a href="clinic.html" class="btn btn-tertiary">Login as Doctor</a>
-      </div>
-
-      <!-- Teacher Portal Card -->
-      <div class="role-card">
-        <div class="role-icon">🏫</div>
-        <h3>Village Teacher</h3>
-        <p>Monitor school-wide health checks, submit attendance & vaccination logs.</p>
-        <a href="school.html" class="btn btn-quaternary">Login as Teacher</a>
+    <section class="section alt" id="about">
+      <div class="wrap narrow">
+        <h2>About Gaon Setu</h2>
+        <p>Gaon Setu keeps a child’s vaccination and development record on every device, so health workers and schools can keep working without internet. When devices reconnect, changes are merged. If two edits cannot be combined safely, both are kept and a person decides.</p>
       </div>
     </section>
   </main>
 
-  <footer class="app-footer">
-    <p>&copy; 2026 Offline-First Healthcare Registry. Conflict-Safe Operations Guaranteed.</p>
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Gaon Setu prototype. Sample data only.</p>
+    </div>
   </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>

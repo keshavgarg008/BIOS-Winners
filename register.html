@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register – Gaon Setu</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="register">
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <div class="notice">
+    Prototype built for a hackathon. This is not an official government portal.
+  </div>
+
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="index.html" aria-label="Gaon Setu home">
+        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
+          <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
+          <rect x="0" y="150" width="200" height="14" fill="#138808"/>
+        </svg>
+        <span class="brand-text">
+          <strong>Gaon Setu</strong>
+          <span>Gaon walon ke liye app</span>
+        </span>
+      </a>
+      <nav aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="register.html" aria-current="page">Register</a>
+        <a href="index.html#login-title">Sign in</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap form-page">
+
+      <section class="login-card" id="register-card" aria-labelledby="reg-title">
+        <h1 id="reg-title" class="card-title">Register</h1>
+        <p class="lead">Create your account. You will get a unique ID to sign in with.</p>
+
+        <form id="register-form" novalidate>
+          <fieldset class="roles">
+            <legend>I am registering as</legend>
+            <label class="role">
+              <input type="radio" name="role" value="parent">
+              <span>Parent</span>
+            </label>
+            <label class="role">
+              <input type="radio" name="role" value="asha">
+              <span>ASHA worker</span>
+            </label>
+            <label class="role">
+              <input type="radio" name="role" value="doctor">
+              <span>Doctor</span>
+            </label>
+            <label class="role">
+              <input type="radio" name="role" value="teacher">
+              <span>Teacher</span>
+            </label>
+          </fieldset>
+
+          <div class="field">
+            <label for="name">Full name</label>
+            <input id="name" name="name" type="text" autocomplete="name" maxlength="80">
+          </div>
+
+          <div class="field">
+            <label for="mobile">Mobile number</label>
+            <input id="mobile" name="mobile" type="tel" inputmode="numeric" maxlength="10"
+                   autocomplete="tel-national" placeholder="10-digit mobile number">
+          </div>
+
+          <div class="field">
+            <label for="place" id="place-label">Village, clinic or school</label>
+            <input id="place" name="place" type="text" maxlength="80">
+          </div>
+
+          <div class="field">
+            <label for="password">Create a password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password">
+            <p class="hint">At least 6 characters.</p>
+          </div>
+
+          <div class="field">
+            <label for="confirm">Confirm password</label>
+            <input id="confirm" name="confirm" type="password" autocomplete="new-password">
+          </div>
+
+          <p class="error" id="form-error" role="alert" hidden></p>
+
+          <button type="submit" class="primary" id="register-btn">Register</button>
+        </form>
+
+        <p class="switch">Already registered? <a href="index.html#login-title">Sign in</a></p>
+      </section>
+
+      <section class="login-card success" id="success-card" aria-labelledby="success-title" hidden>
+        <h2 id="success-title" tabindex="-1">You are registered</h2>
+        <p>Your unique ID is:</p>
+        <p class="id-box" id="new-id"></p>
+        <p>
+          <button type="button" class="link-button" id="copy-id">Copy ID</button>
+          <span class="copy-status" id="copy-status" role="status"></span>
+        </p>
+        <p>Write this ID down or take a screenshot. Next time, enter this ID and your password on the sign-in page. You will go straight to your own page.</p>
+        <a class="primary-link" id="go-page" href="index.html">Go to my page</a>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Gaon Setu prototype. Sample data only.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
