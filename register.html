@@ -3,33 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Register – Gaon Setu</title>
+  <title>Register – JeevanSetu</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="register">
-  <a class="skip" href="#main">Skip to main content</a>
-
-  <div class="notice">
-    Prototype built for a hackathon. This is not an official government portal.
-  </div>
+  <a class="skip" href="#main" data-i18n="skip">Skip to main content</a>
 
   <header class="site-header">
     <div class="wrap header-row">
-      <a class="brand" href="index.html" aria-label="Gaon Setu home">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
         <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
           <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
           <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
           <rect x="0" y="150" width="200" height="14" fill="#138808"/>
         </svg>
         <span class="brand-text">
-          <strong>Gaon Setu</strong>
-          <span>Gaon walon ke liye app</span>
+          <strong>JeevanSetu</strong>
+          <span data-i18n="tagline">Child vaccination and development records</span>
         </span>
       </a>
       <nav aria-label="Main">
-        <a href="index.html">Home</a>
-        <a href="register.html" aria-current="page">Register</a>
-        <a href="index.html#login-title">Sign in</a>
+        <a href="index.html" data-i18n="nav_home">Home</a>
+        <a href="register.html" aria-current="page" data-i18n="nav_register">Register</a>
+        <a href="index.html#login-title" data-i18n="signin">Sign in</a>
+
+        <div class="font-size" role="group" aria-label="Text size">
+          <button type="button" id="font-down" aria-label="Decrease text size">A&minus;</button>
+          <button type="button" id="font-reset" aria-label="Reset text size">A</button>
+          <button type="button" id="font-up" aria-label="Increase text size">A+</button>
+        </div>
+
+        <div class="lang-select">
+          <label for="lang" class="sr-only">Language</label>
+          <select id="lang" name="lang">
+            <option value="en">English</option>
+            <option value="hi">हिन्दी</option>
+            <option value="pa">ਪੰਜਾਬੀ</option>
+          </select>
+        </div>
       </nav>
     </div>
   </header>
@@ -38,75 +49,75 @@
     <div class="wrap form-page">
 
       <section class="login-card" id="register-card" aria-labelledby="reg-title">
-        <h1 id="reg-title" class="card-title">Register</h1>
-        <p class="lead">Create your account. You will get a unique ID to sign in with.</p>
+        <h1 id="reg-title" class="card-title" data-i18n="reg_title">Register</h1>
+        <p class="lead" data-i18n="reg_lead">Create your account. You will get a unique ID to sign in with.</p>
 
         <form id="register-form" novalidate>
           <fieldset class="roles">
-            <legend>I am registering as</legend>
+            <legend data-i18n="reg_as">I am registering as</legend>
             <label class="role">
               <input type="radio" name="role" value="parent">
-              <span>Parent</span>
+              <span data-i18n="role_parent">Parent</span>
             </label>
             <label class="role">
               <input type="radio" name="role" value="asha">
-              <span>ASHA worker</span>
+              <span data-i18n="role_asha">ASHA worker</span>
             </label>
             <label class="role">
               <input type="radio" name="role" value="doctor">
-              <span>Doctor</span>
+              <span data-i18n="role_doctor">Doctor</span>
             </label>
             <label class="role">
               <input type="radio" name="role" value="teacher">
-              <span>Teacher</span>
+              <span data-i18n="role_teacher">Teacher</span>
             </label>
           </fieldset>
 
           <div class="field">
-            <label for="name">Full name</label>
+            <label for="name" data-i18n="full_name">Full name</label>
             <input id="name" name="name" type="text" autocomplete="name" maxlength="80">
           </div>
 
           <div class="field">
-            <label for="mobile">Mobile number</label>
+            <label for="mobile" data-i18n="mobile">Mobile number</label>
             <input id="mobile" name="mobile" type="tel" inputmode="numeric" maxlength="10"
-                   autocomplete="tel-national" placeholder="10-digit mobile number">
+                   autocomplete="tel-national" placeholder="10-digit mobile number" data-i18n-placeholder="mobile_ph">
           </div>
 
           <div class="field">
-            <label for="place" id="place-label">Village, clinic or school</label>
+            <label for="place" id="place-label" data-i18n="place_default">Village, clinic or school</label>
             <input id="place" name="place" type="text" maxlength="80">
           </div>
 
           <div class="field">
-            <label for="password">Create a password</label>
-            <input id="password" name="password" type="password" autocomplete="new-password">
-            <p class="hint">At least 6 characters.</p>
+            <label for="reg-password" data-i18n="create_pw">Create a password</label>
+            <input id="reg-password" name="password" type="password" autocomplete="new-password">
+            <p class="hint" data-i18n="pw_hint">At least 6 characters.</p>
           </div>
 
           <div class="field">
-            <label for="confirm">Confirm password</label>
+            <label for="confirm" data-i18n="confirm_pw">Confirm password</label>
             <input id="confirm" name="confirm" type="password" autocomplete="new-password">
           </div>
 
           <p class="error" id="form-error" role="alert" hidden></p>
 
-          <button type="submit" class="primary" id="register-btn">Register</button>
+          <button type="submit" class="primary" id="register-btn" data-i18n="register_submit">Register</button>
         </form>
 
-        <p class="switch">Already registered? <a href="index.html#login-title">Sign in</a></p>
+        <p class="switch"><span data-i18n="have_account">Already registered?</span> <a href="index.html#login-title" data-i18n="signin_link">Sign in</a></p>
       </section>
 
       <section class="login-card success" id="success-card" aria-labelledby="success-title" hidden>
-        <h2 id="success-title" tabindex="-1">You are registered</h2>
-        <p>Your unique ID is:</p>
+        <h2 id="success-title" tabindex="-1" data-i18n="ok_title">You are registered</h2>
+        <p data-i18n="ok_id_is">Your unique ID is:</p>
         <p class="id-box" id="new-id"></p>
         <p>
-          <button type="button" class="link-button" id="copy-id">Copy ID</button>
+          <button type="button" class="link-button copy" id="copy-id" data-i18n="copy">Copy ID</button>
           <span class="copy-status" id="copy-status" role="status"></span>
         </p>
-        <p>Write this ID down or take a screenshot. Next time, enter this ID and your password on the sign-in page. You will go straight to your own page.</p>
-        <a class="primary-link" id="go-page" href="index.html">Go to my page</a>
+        <p data-i18n="ok_note">Write this ID down. Next time, enter it with your password on the sign-in page and you will go straight to your own page.</p>
+        <a class="primary-link" id="go-page" href="index.html" data-i18n="go_page">Go to my page</a>
       </section>
 
     </div>
@@ -114,10 +125,11 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>Gaon Setu prototype. Sample data only.</p>
+      <p data-i18n="footer">Made with ♡ by Jeevansetu</p>
     </div>
   </footer>
 
+  <script src="settings.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
