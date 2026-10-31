@@ -107,7 +107,7 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _selectedVaccine,
+                      initialValue: _selectedVaccine,
                       isExpanded: true,
                       items: _vaccines
                           .map((v) => DropdownMenuItem<String>(
