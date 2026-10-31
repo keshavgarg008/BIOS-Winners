@@ -3,27 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Clinic page – Gaon Setu</title>
+  <title>Clinic page – JeevanSetu</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="role" data-role="doctor">
   <a class="skip" href="#main">Skip to main content</a>
 
-  <div class="notice">
-    Prototype built for a hackathon. This is not an official government portal.
-  </div>
-
   <header class="site-header">
     <div class="wrap header-row">
-      <a class="brand" href="index.html" aria-label="Gaon Setu home">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
         <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
           <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
           <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
           <rect x="0" y="150" width="200" height="14" fill="#138808"/>
         </svg>
         <span class="brand-text">
-          <strong>Gaon Setu</strong>
-          <span>Gaon walon ke liye app</span>
+          <strong>JeevanSetu</strong>
+          <span>Child vaccination and development records</span>
         </span>
       </a>
       <div class="dash-bar">
@@ -36,11 +32,13 @@
 
   <main id="main">
     <div class="wrap">
+      <!-- Guard container shown if user is not signed in or not a doctor -->
       <div class="empty guard" id="guard" hidden>
         <p id="guard-text"></p>
         <p><a class="primary-link" id="guard-link" href="index.html">Go to sign in</a></p>
       </div>
 
+      <!-- Main dashboard content -->
       <div id="content" hidden>
         <div class="page-head">
           <h1>Clinic page</h1>
@@ -55,10 +53,12 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>Gaon Setu prototype. Sample data only.</p>
+      <p>Made with ♡ by Jeevansetu</p>
     </div>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="settings.js"></script>
+  <!-- Updated to module for Firebase compatibility -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>
