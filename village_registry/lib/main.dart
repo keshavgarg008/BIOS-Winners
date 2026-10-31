@@ -1,31 +1,28 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
-
-import 'firebase_options.dart';
-import 'screens/login_screen.dart';
-import 'theme/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';   // NEW
+import 'package:firebase_auth/firebase_auth.dart';        // NEW
+import 'session.dart';                                     // NEW
+import 'sync_service.dart';                                // NEW
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Connects to your Firebase project
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // NEW: our own SQLite queue is the offline store; avoid a second hidden queue
+  FirebaseFirestore.instance.settings =
+      const Settings(persistenceEnabled: false);
+
+  await Session.init(); // NEW
+
+  // NEW: starts/stops sync automatically on login/logout (no UI changes needed)
+  FirebaseAuth.instance.authStateChanges().listen((user) async {
+    if (user == null) {
+      SyncService.instance.stop();
+      Session.clear();
+    } else {
+      await Session.load(user);
+      SyncService.instance.start();
+    }
+  });
 
   runApp(const VillageRegistryApp());
-}
-
-class VillageRegistryApp extends StatelessWidget {
-  const VillageRegistryApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Village Health Registry',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: const LoginScreen(),
-    );
-  }
 }
