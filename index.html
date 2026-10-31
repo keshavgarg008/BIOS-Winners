@@ -60,11 +60,11 @@
 
           <form id="login-form" novalidate>
             <div class="field">
-              <label for="uid" data-i18n="uid_label">Unique ID</label>
+              <label for="uid">Username</label>
               <input id="uid" name="uid" type="text" autocomplete="username"
-                     autocapitalize="characters" spellcheck="false"
-                     placeholder="For example, GS-P-7K3Q-9XMD" data-i18n-placeholder="uid_ph">
-              <p class="hint" data-i18n="uid_hint">You get this ID when you register. It opens the right page for you.</p>
+                     autocapitalize="none" spellcheck="false"
+                     placeholder="For example, rahul_123">
+              <p class="hint">Enter the unique username you created during registration.</p>
             </div>
 
             <div class="field">
@@ -74,7 +74,7 @@
 
             <p class="error" id="form-error" role="alert" hidden></p>
 
-            <button type="submit" class="primary" data-i18n="signin_btn">Sign in</button>
+            <button type="submit" class="primary" id="signin-btn" data-i18n="signin_btn">Sign in</button>
           </form>
 
           <p class="switch"><span data-i18n="new_here">New here?</span> <a href="register.html" data-i18n="register_link">Register</a></p>
@@ -108,8 +108,8 @@
 
     <section class="section alt" id="about">
       <div class="wrap narrow">
-        <h2 data-i18n="about_title">About Gaon Setu</h2>
-        <p data-i18n="about_text">Gaon Setu is an offline-first child welfare record management app that helps clinics, community health workers, and schools maintain and access children's records without internet connectivity. Each device stores records locally, allowing users to continue working independently. When devices reconnect, changes are synchronized and safely merged ensuring that no important information is silently lost.</p>
+        <h2 data-i18n="about_title">About JeevanSetu</h2>
+        <p data-i18n="about_text">JeevanSetu is an offline-first child welfare record management app that helps clinics, community health workers, and schools maintain and access children's records without internet connectivity. Each device stores records locally, allowing users to continue working independently. When devices reconnect, changes are synchronized and safely merged ensuring that no important information is silently lost.</p>
       </div>
     </section>
   </main>
@@ -121,6 +121,6 @@
   </footer>
 
   <script src="settings.js"></script>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

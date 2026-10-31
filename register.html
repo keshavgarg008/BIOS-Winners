@@ -50,7 +50,7 @@
 
       <section class="login-card" id="register-card" aria-labelledby="reg-title">
         <h1 id="reg-title" class="card-title" data-i18n="reg_title">Register</h1>
-        <p class="lead" data-i18n="reg_lead">Create your account. You will get a unique ID to sign in with.</p>
+        <p class="lead" data-i18n="reg_lead">Create your account to get started.</p>
 
         <form id="register-form" novalidate>
           <fieldset class="roles">
@@ -76,6 +76,12 @@
           <div class="field">
             <label for="name" data-i18n="full_name">Full name</label>
             <input id="name" name="name" type="text" autocomplete="name" maxlength="80">
+          </div>
+
+          <div class="field">
+            <label for="username">Choose a Username</label>
+            <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" maxlength="30">
+            <p class="hint">No spaces. Use letters, numbers, or underscores (e.g., rahul_asha)</p>
           </div>
 
           <div class="field">
@@ -110,13 +116,13 @@
 
       <section class="login-card success" id="success-card" aria-labelledby="success-title" hidden>
         <h2 id="success-title" tabindex="-1" data-i18n="ok_title">You are registered</h2>
-        <p data-i18n="ok_id_is">Your unique ID is:</p>
+        <p>Your Username is:</p>
         <p class="id-box" id="new-id"></p>
         <p>
-          <button type="button" class="link-button copy" id="copy-id" data-i18n="copy">Copy ID</button>
+          <button type="button" class="link-button copy" id="copy-id" data-i18n="copy">Copy Username</button>
           <span class="copy-status" id="copy-status" role="status"></span>
         </p>
-        <p data-i18n="ok_note">Write this ID down. Next time, enter it with your password on the sign-in page and you will go straight to your own page.</p>
+        <p>Write this Username down. Next time, enter it with your password on the sign-in page and you will go straight to your own page.</p>
         <a class="primary-link" id="go-page" href="index.html" data-i18n="go_page">Go to my page</a>
       </section>
 
@@ -130,6 +136,6 @@
   </footer>
 
   <script src="settings.js"></script>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script> 
 </body>
 </html>
