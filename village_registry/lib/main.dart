@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'database_helper.dart';
 
-void main() {
+void main() async {
+  // Required to make sure Flutter is ready before calling Firebase
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Connects to your Firebase project using the generated file
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   runApp(const VillageRegistryApp());
 }
 
@@ -146,7 +156,7 @@ class DashboardScreen extends StatelessWidget {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: 3, // Dummy data count for now
+        itemCount: 3, 
         itemBuilder: (context, index) {
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
@@ -196,14 +206,12 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
   String _selectedVaccine = 'Measles-Rubella (MR)';
 
   void _saveOfflineEvent() async {
-    // 1. Create a dummy JSON payload for the health record
     final recordData = {
       'vaccine': _selectedVaccine,
       'administered_by': 'worker_jalandhar_01',
       'timestamp': DateTime.now().toIso8601String(),
     };
 
-    // 2. Save it to the local SQLite database
     await DatabaseHelper.instance.insertEvent(
       eventType: 'vaccination',
       payload: recordData,
@@ -211,7 +219,6 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
 
     if (!mounted) return;
     
-    // 3. Show success message and go back to dashboard
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Event saved locally! Ready for background sync.'),
