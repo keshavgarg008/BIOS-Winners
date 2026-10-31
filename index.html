@@ -3,33 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gaon Setu – Gaon walon ke liye app</title>
+  <title>JeevanSetu – Child vaccination and development records</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="home">
-  <a class="skip" href="#main">Skip to main content</a>
-
-  <div class="notice">
-    Prototype built for a hackathon. This is not an official government portal.
-  </div>
+  <a class="skip" href="#main" data-i18n="skip">Skip to main content</a>
 
   <header class="site-header">
     <div class="wrap header-row">
-      <a class="brand" href="index.html" aria-label="Gaon Setu home">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
         <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
           <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
           <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
           <rect x="0" y="150" width="200" height="14" fill="#138808"/>
         </svg>
         <span class="brand-text">
-          <strong>Gaon Setu</strong>
-          <span>Gaon walon ke liye app</span>
+          <strong>JeevanSetu</strong>
+          <span data-i18n="tagline">Child vaccination and development records</span>
         </span>
       </a>
       <nav aria-label="Main">
-        <a href="index.html">Home</a>
-        <a href="register.html">Register</a>
-        <a href="#about">About</a>
+        <a href="#main" data-i18n="nav_home">Home</a>
+        <a href="#roles" data-i18n="nav_roles">Who it is for</a>
+        <a href="#about" data-i18n="nav_about">About</a>
+        <a href="register.html" data-i18n="nav_register">Register</a>
+
+        <div class="font-size" role="group" aria-label="Text size">
+          <button type="button" id="font-down" aria-label="Decrease text size">A&minus;</button>
+          <button type="button" id="font-reset" aria-label="Reset text size">A</button>
+          <button type="button" id="font-up" aria-label="Increase text size">A+</button>
+        </div>
+
+        <div class="lang-select">
+          <label for="lang" class="sr-only">Language</label>
+          <select id="lang" name="lang">
+            <option value="en">English</option>
+            <option value="hi">हिन्दी</option>
+            <option value="pa">ਪੰਜਾਬੀ</option>
+          </select>
+        </div>
       </nav>
     </div>
   </header>
@@ -38,58 +50,57 @@
     <section class="hero">
       <div class="wrap hero-grid">
         <div class="hero-text">
-          <h1>Every child’s vaccines and milestones, on track.</h1>
-          <p>Register once to get your unique ID. Then sign in with that ID and go straight to your own page. Built to keep working when the network does not.</p>
-          <a class="primary-link" href="register.html">Register now</a>
+          <h1 data-i18n="hero_title">Every child’s vaccines and milestones, on track.</h1>
+          <p data-i18n="hero_text">Sign in to see which vaccines are due, record visits, and keep each child’s record in one place. Built to keep working when the network does not.</p>
+          <a class="primary-link" href="register.html" data-i18n="register_btn">Register now</a>
         </div>
 
         <section class="login-card" aria-labelledby="login-title">
-          <h2 id="login-title">Sign in</h2>
+          <h2 id="login-title" data-i18n="signin">Sign in</h2>
 
           <form id="login-form" novalidate>
             <div class="field">
-              <label for="uid">Unique ID</label>
+              <label for="uid" data-i18n="uid_label">Unique ID</label>
               <input id="uid" name="uid" type="text" autocomplete="username"
                      autocapitalize="characters" spellcheck="false"
-                     placeholder="For example, GS-P-7K3Q-9XMD">
-              <p class="hint">You get this ID when you register. It opens the right page for you.</p>
+                     placeholder="For example, GS-P-7K3Q-9XMD" data-i18n-placeholder="uid_ph">
+              <p class="hint" data-i18n="uid_hint">You get this ID when you register. It opens the right page for you.</p>
             </div>
 
             <div class="field">
-              <label for="password">Password</label>
+              <label for="password" data-i18n="password">Password</label>
               <input id="password" name="password" type="password" autocomplete="current-password">
             </div>
 
             <p class="error" id="form-error" role="alert" hidden></p>
 
-            <button type="submit" class="primary">Sign in</button>
+            <button type="submit" class="primary" data-i18n="signin_btn">Sign in</button>
           </form>
 
-          <p class="switch">New to Gaon Setu? <a href="register.html">Register</a></p>
-          <p class="demo-note">Prototype: accounts are saved in this browser only, and passwords are not sent anywhere.</p>
+          <p class="switch"><span data-i18n="new_here">New here?</span> <a href="register.html" data-i18n="register_link">Register</a></p>
         </section>
       </div>
     </section>
 
     <section class="section" id="roles">
       <div class="wrap">
-        <h2>Who can register</h2>
+        <h2 data-i18n="roles_title">Who it is for</h2>
         <div class="grid-4">
           <article class="info">
-            <h3>Parents</h3>
-            <p>See your child’s vaccine schedule, milestones and reminders.</p>
+            <h3 data-i18n="card_parent_h">Parents</h3>
+            <p data-i18n="card_parent_p">See your child’s health records, academic records, vaccine schedule and reminders.</p>
           </article>
           <article class="info">
-            <h3>ASHA workers</h3>
-            <p>See who to visit today and record doses and checks in the field.</p>
+            <h3 data-i18n="card_asha_h">ASHA workers</h3>
+            <p data-i18n="card_asha_p">See who to visit today and record doses and checks in the field.</p>
           </article>
           <article class="info">
-            <h3>Doctors</h3>
-            <p>Review clinic records and settle conflicting entries.</p>
+            <h3 data-i18n="card_doctor_h">Doctors</h3>
+            <p data-i18n="card_doctor_p">Review clinic records and settle conflicting entries.</p>
           </article>
           <article class="info">
-            <h3>Teachers</h3>
-            <p>Support school health checks and share results with families.</p>
+            <h3 data-i18n="card_teacher_h">Teachers</h3>
+            <p data-i18n="card_teacher_p">Support school health checks and share results with families.</p>
           </article>
         </div>
       </div>
@@ -97,18 +108,19 @@
 
     <section class="section alt" id="about">
       <div class="wrap narrow">
-        <h2>About Gaon Setu</h2>
-        <p>Gaon Setu keeps a child’s vaccination and development record on every device, so health workers and schools can keep working without internet. When devices reconnect, changes are merged. If two edits cannot be combined safely, both are kept and a person decides.</p>
+        <h2 data-i18n="about_title">About Gaon Setu</h2>
+        <p data-i18n="about_text">Gaon Setu is an offline-first child welfare record management app that helps clinics, community health workers, and schools maintain and access children's records without internet connectivity. Each device stores records locally, allowing users to continue working independently. When devices reconnect, changes are synchronized and safely merged ensuring that no important information is silently lost.</p>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>Gaon Setu prototype. Sample data only.</p>
+      <p data-i18n="footer">Made with ♡ by Jeevansetu</p>
     </div>
   </footer>
 
+  <script src="settings.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
