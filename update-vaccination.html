@@ -240,56 +240,36 @@
   <script src="settings.js"></script>
   <script src="schedule.js"></script>
   <script type="module" src="app.js"></script>
+  <script type="module" src="sync.js"></script>
 
-  <!-- FIREBASE EMBEDDED SCRIPT FOR VACCINATIONS -->
+  <!-- VACCINATION SCRIPT (offline-safe, verified saves) -->
   <script type="module">
-    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import {
-      initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
-      collection, doc, getDoc, getDocs, getDocFromCache, getDocsFromCache, query, where, writeBatch
+      collection, doc, getDoc, getDocs, getDocFromCache, getDocsFromCache, query, where
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
-      authDomain: "syncedd.firebaseapp.com",
-      projectId: "syncedd",
-      storageBucket: "syncedd.firebasestorage.app",
-      messagingSenderId: "784392339011",
-      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
-      measurementId: "G-8YVJKBCGFL"
-    };
-
-    // Reuse the app/Firestore instance if another script already created one
-    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    let db;
-    try {
-      db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
-    } catch (e) {
-      db = getFirestore(app);
-    }
-
+    // Shared Firestore instance and sync engine from sync.js
+    const db = window.JSSync.db;
     const OFFLINE_MS = 8000;
+
+    function withTimeout(p) {
+      let timer;
+      const t = new Promise(function (_, rej) { timer = setTimeout(function () { rej(new Error("timeout")); }, OFFLINE_MS); });
+      return Promise.race([p, t]).finally(function () { clearTimeout(timer); });
+    }
 
     // Read from the server with a timeout; if that fails (offline), use the local cache.
     async function readDoc(ref) {
-      try {
-        return await Promise.race([
-          getDoc(ref),
-          new Promise(function (_, rej) { setTimeout(function () { rej(new Error("timeout")); }, OFFLINE_MS); })
-        ]);
-      } catch (e) {
+      try { return await withTimeout(getDoc(ref)); }
+      catch (e) {
         try { return await getDocFromCache(ref); } catch (_) { return null; }
       }
     }
 
     async function readDocs(q) {
-      try {
-        return await Promise.race([
-          getDocs(q),
-          new Promise(function (_, rej) { setTimeout(function () { rej(new Error("timeout")); }, OFFLINE_MS); })
-        ]);
-      } catch (e) {
-        try { return await getDocsFromCache(q); } catch (_) { return { forEach: function () {} }; }
+      try { return await withTimeout(getDocs(q)); }
+      catch (e) {
+        try { return await getDocsFromCache(q); } catch (_) { return null; }
       }
     }
 
@@ -311,8 +291,22 @@
     ];
 
     let currentChild = null;   // child document data
-    let currentDocId = null;   // Firestore document ID of the child (used for all paths)
+    let currentDocId = null;   // Firestore document ID of the child
     let childVaccines = {};    // { vaccineCode: "YYYY-MM-DD" }
+    let lookupTimer = null;
+    let searchToken = 0;
+
+    // Callbacks waiting for a background job to be verified
+    const watchers = {};
+    JSSync.onChange(function () {
+      Object.keys(watchers).forEach(function (id) {
+        if (JSSync.status(id) === "verified") {
+          const fn = watchers[id];
+          delete watchers[id];
+          fn();
+        }
+      });
+    });
 
     const MS_DAY = 86400000;
     function $(id) { return document.getElementById(id); }
@@ -326,25 +320,25 @@
     function titleCase(s) { return s.replace(/\w\S*/g, function (w) { return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }); }
 
     function dueOf(dob, item) {
-      var d = parse(dob);
+      const d = parse(dob);
       if (item.weeks != null) d.setDate(d.getDate() + item.weeks * 7);
       else d.setMonth(d.getMonth() + item.months);
       return iso(d);
     }
 
     function ageText(dob) {
-      var b = parse(dob), t = parse(todayIso());
-      var days = Math.floor((t - b) / MS_DAY);
-      var months = (t.getFullYear() - b.getFullYear()) * 12 + (t.getMonth() - b.getMonth());
+      const b = parse(dob), t = parse(todayIso());
+      const days = Math.floor((t - b) / MS_DAY);
+      let months = (t.getFullYear() - b.getFullYear()) * 12 + (t.getMonth() - b.getMonth());
       if (t.getDate() < b.getDate()) months--;
       if (months < 1) return days + (days === 1 ? " day" : " days");
       if (months < 24) return months + " months";
-      var y = Math.floor(months / 12), m = months % 12;
+      const y = Math.floor(months / 12), m = months % 12;
       return y + " years" + (m ? " " + m + " months" : "");
     }
 
     function dueText(due) {
-      var n = daysUntil(due);
+      const n = daysUntil(due);
       if (n < 0) return "Overdue by " + (-n) + (n === -1 ? " day" : " days");
       if (n === 0) return "Due today";
       return "Due in " + n + (n === 1 ? " day" : " days");
@@ -359,29 +353,27 @@
     function pill(kind) { return '<span class="pill ' + PILL[kind][0] + '">' + PILL[kind][1] + "</span>"; }
 
     function statusOf(item) {
-      if (childVaccines[item.code]) {
-        return { kind: "given", date: childVaccines[item.code] };
-      }
-      var due = dueOf(currentChild.dob, item), n = daysUntil(due);
+      if (childVaccines[item.code]) return { kind: "given", date: childVaccines[item.code] };
+      const due = dueOf(currentChild.dob, item), n = daysUntil(due);
       if (n < 0) return { kind: "overdue", due: due };
       if (n <= 30) return { kind: "soon", due: due };
       return { kind: "upcoming", due: due };
     }
 
     function setMsg(text, kind) {
-      var m = $("save-msg");
+      const m = $("save-msg");
       m.textContent = text;
       m.className = kind === "err" ? "err" : kind === "ok" ? "ok-text" : "";
     }
 
     function renderNext(next, nextSt) {
-      var box = $("next-card");
+      const box = $("next-card");
       if (!next) {
         box.className = "card next done";
         box.innerHTML = '<p class="eyebrow">Next vaccine</p><h2>All scheduled vaccines are recorded</h2><p class="muted">Nothing is due right now.</p>';
         return;
       }
-      var detail = "Due on " + fmt(nextSt.due) + " (" + dueText(nextSt.due) + ")";
+      const detail = "Due on " + fmt(nextSt.due) + " (" + dueText(nextSt.due) + ")";
       box.className = "card next" + (nextSt.kind === "overdue" ? " over" : "");
       box.innerHTML = '<p class="eyebrow">Next vaccine</p><div class="next-row"><div><h2>' + esc(next.code) + "</h2>" +
         '<p class="muted">' + esc(next.desc) + " · " + esc(next.stage) + "</p></div>" +
@@ -389,7 +381,8 @@
     }
 
     function rowHtml(item, st) {
-      var v = esc(item.code), label = item.code, dueLine, cls = "vx", tickAttr, right;
+      const v = esc(item.code), label = item.code;
+      let dueLine, cls = "vx", tickAttr, right;
 
       if (st.kind === "given") {
         cls += " given";
@@ -402,22 +395,22 @@
         right = pill(st.kind) + '<input type="date" data-vax="' + v + '" value="" disabled min="' + esc(currentChild.dob) + '" max="' + todayIso() + '">';
       }
 
-      var tick = '<input type="checkbox" data-tick="' + v + '" ' + tickAttr + ' aria-label="Mark ' + v + ' as given">';
+      const tick = '<input type="checkbox" data-tick="' + v + '" ' + tickAttr + ' aria-label="Mark ' + v + ' as given">';
       return '<div class="' + cls + '"><div>' + tick + '</div><div class="name"><strong>' + esc(label) + "</strong><small>" + esc(item.desc) + "</small>" + dueLine + "</div>" +
         '<div class="right">' + right + "</div></div>";
     }
 
     function renderStages() {
-      var groups = [], map = {};
+      const groups = [], map = {};
       ITEMS.forEach(function (it) {
         if (!map[it.stage]) { map[it.stage] = []; groups.push({ stage: it.stage, items: map[it.stage] }); }
         map[it.stage].push(it);
       });
 
       $("stages").innerHTML = groups.map(function (g) {
-        var given = 0;
-        var rows = g.items.map(function (it) {
-          var st = statusOf(it);
+        let given = 0;
+        const rows = g.items.map(function (it) {
+          const st = statusOf(it);
           if (st.kind === "given") given++;
           return rowHtml(it, st);
         }).join("");
@@ -428,15 +421,15 @@
     }
 
     function renderAll() {
-      var given = 0, next = null, nextSt = null;
+      let given = 0, next = null, nextSt = null;
 
       ITEMS.forEach(function (it) {
-        var st = statusOf(it);
+        const st = statusOf(it);
         if (st.kind === "given") given++;
         if (!next && st.kind !== "given") { next = it; nextSt = st; }
       });
 
-      var total = ITEMS.length, pct = Math.round((given / total) * 100);
+      const total = ITEMS.length, pct = Math.round((given / total) * 100);
       $("progress-text").textContent = given + " of " + total + " vaccines given (" + pct + "%)";
       $("progress-bar").style.width = pct + "%";
       $("progress-track").setAttribute("aria-valuenow", String(pct));
@@ -447,7 +440,7 @@
 
     function fact(label, value) { return '<div class="fact"><span>' + esc(label) + "</span><strong>" + esc(value || "—") + "</strong></div>"; }
 
-    // 1. Load child profile AND vaccinations from Firestore (by document ID)
+    // 1. Load child profile AND vaccinations (by document ID)
     async function loadChildData(docId) {
       try {
         const childSnap = await readDoc(doc(db, "children", docId));
@@ -467,10 +460,12 @@
 
         // Main source: vaccinations subcollection
         const vaxSnap = await readDocs(collection(db, "children", currentDocId, "vaccinations"));
-        vaxSnap.forEach(function (d) {
-          const data = d.data();
-          if (data && data.dateGiven) childVaccines[d.id] = data.dateGiven;
-        });
+        if (vaxSnap) {
+          vaxSnap.forEach(function (d) {
+            const data = d.data();
+            if (data && data.dateGiven) childVaccines[d.id] = data.dateGiven;
+          });
+        }
 
         return true;
       } catch (e) {
@@ -506,7 +501,7 @@
       displayChildUI();
     }
 
-    // Birth certificate viewer (event delegation, no timers)
+    // Birth certificate viewer
     $("cert-line").addEventListener("click", function (e) {
       if (!e.target.closest("#view-cert-btn") || !currentChild || !currentChild.birthCertDataUrl) return;
       fetch(currentChild.birthCertDataUrl)
@@ -515,38 +510,39 @@
         .catch(function (err) { console.error(err); });
     });
 
-    // 2. Search Firestore by Username (document ID) or Name
+    // 2. Search by Username (document ID) or Name
     $("search-form").addEventListener("submit", async function (e) {
       e.preventDefault();
-      var raw = $("q").value.trim();
-      var box = $("results");
+      const raw = $("q").value.trim();
+      const box = $("results");
       if (!raw) return;
+      const token = ++searchToken;
       box.innerHTML = "Searching database...";
       $("search-msg").textContent = "";
 
       try {
-        var found = [];
-        var seen = {};
+        const found = [];
+        const seen = {};
         function add(id, data) {
           if (seen[id]) return;
           seen[id] = true;
           found.push({ id: id, data: data });
         }
 
-        // Try the username (document ID) first, then the name
-        var idTries = [raw.toLowerCase()];
-        var nameTries = [titleCase(raw), raw];
+        const idTries = [raw.toLowerCase()];
+        const nameTries = [titleCase(raw), raw];
 
-        for (var i = 0; i < idTries.length; i++) {
+        for (let i = 0; i < idTries.length; i++) {
           const snap = await readDoc(doc(db, "children", idTries[i]));
           if (snap && snap.exists()) add(snap.id, snap.data());
         }
 
-        for (var j = 0; j < nameTries.length; j++) {
-          var nameSnap = await readDocs(query(collection(db, "children"), where("name", "==", nameTries[j])));
-          nameSnap.forEach(function (d) { add(d.id, d.data()); });
+        for (let j = 0; j < nameTries.length; j++) {
+          const nameSnap = await readDocs(query(collection(db, "children"), where("name", "==", nameTries[j])));
+          if (nameSnap) nameSnap.forEach(function (d) { add(d.id, d.data()); });
         }
 
+        if (token !== searchToken) return;
         box.innerHTML = "";
         if (!found.length) {
           $("search-msg").textContent = "No child found with that Username or Name.";
@@ -559,8 +555,8 @@
 
         $("search-msg").textContent = found.length + " children found. Choose one:";
         found.forEach(function (f) {
-          var c = f.data;
-          var btn = document.createElement("button");
+          const c = f.data;
+          const btn = document.createElement("button");
           btn.type = "button";
           btn.className = "result-card";
           btn.innerHTML = "<strong>" + esc(c.name) + "</strong><small>" + esc(c.childId || f.id) + "</small><small>" + esc(c.village) + (c.dob ? " · born " + esc(fmt(c.dob)) : "") + "</small>";
@@ -585,10 +581,10 @@
 
     // Tick a box
     $("stages").addEventListener("change", function (e) {
-      var t = e.target;
+      const t = e.target;
       if (!t.matches("input[type='checkbox'][data-tick]")) return;
-      var row = t.closest(".vx");
-      var dateIn = row.querySelector("input[type='date']");
+      const row = t.closest(".vx");
+      const dateIn = row.querySelector("input[type='date']");
       dateIn.disabled = !t.checked;
       if (t.checked && !dateIn.value) dateIn.value = todayIso();
       if (!t.checked) dateIn.value = "";
@@ -596,25 +592,25 @@
       setMsg("");
     });
 
-    // 3. Save vaccinations to Firestore
+    // 3. Save: local outbox first, then upload and server read-back verification
     //    Writes BOTH:
     //      children/{id}/vaccinations/{code}   (subcollection document)
     //      children/{id}  ->  vaccines.{code}  (map field on the child document)
     $("save-btn").addEventListener("click", async function () {
       if (!currentChild || !currentDocId) return;
-      var today = todayIso(), problems = [];
-      var currentWorker = sessionStorage.getItem("js_user") || "Unknown Worker";
-      var saveBtn = $("save-btn");
+      const today = todayIso(), problems = [];
+      const currentWorker = sessionStorage.getItem("js_user") || "Unknown Worker";
+      const saveBtn = $("save-btn");
 
-      var batch = writeBatch(db);
-      var pending = {};   // code -> date, applied locally after a successful commit
-      var stamp = new Date().toISOString();
-      var vaccinesMap = {};
+      const pending = {};     // code -> date, shown immediately
+      const vaccinesMap = {};
+      const writes = [];
+      const stamp = new Date().toISOString();
 
-      var inputs = $("stages").querySelectorAll("input[type='date'][data-vax]");
+      const inputs = $("stages").querySelectorAll("input[type='date'][data-vax]");
       inputs.forEach(function (inp) {
-        var vaxCode = inp.getAttribute("data-vax");
-        var val = inp.value;
+        const vaxCode = inp.getAttribute("data-vax");
+        const val = inp.value;
 
         // Skip if untouched, disabled, or unchanged
         if (inp.disabled || !val || childVaccines[vaxCode] === val) return;
@@ -624,61 +620,55 @@
         } else if (val > today) {
           problems.push(vaxCode + " is in the future");
         } else {
-          var record = { dateGiven: val, recordedBy: currentWorker, timestamp: stamp };
-          batch.set(doc(db, "children", currentDocId, "vaccinations", vaxCode), record);
+          const record = { dateGiven: val, recordedBy: currentWorker, timestamp: stamp };
+          writes.push({ path: "children/" + currentDocId + "/vaccinations/" + vaxCode, data: record });
           vaccinesMap[vaxCode] = record;
           pending[vaxCode] = val;
         }
       });
 
-      var count = Object.keys(pending).length;
+      const count = Object.keys(pending).length;
 
       if (!count) {
         setMsg(problems.length ? "Not saved: " + problems.join("; ") + "." : "No changes to save.", problems.length ? "err" : "");
         return;
       }
 
-      // Also store on the child document so it is visible in the "children" collection
-      batch.set(doc(db, "children", currentDocId), {
-        vaccines: vaccinesMap,
-        vaccinesUpdatedAt: stamp,
-        vaccinesUpdatedBy: currentWorker
-      }, { merge: true });
+      // Also store on the child document
+      writes.push({
+        path: "children/" + currentDocId,
+        data: { vaccines: vaccinesMap, vaccinesUpdatedAt: stamp, vaccinesUpdatedBy: currentWorker },
+        merge: true
+      });
 
       saveBtn.disabled = true;
       saveBtn.textContent = "Saving...";
 
-      try {
-        const commitP = batch.commit();
-        commitP.catch(function (e) { console.error("Background sync failed:", e); });
+      // Saved locally first, so the record survives a dropped connection
+      const jobId = JSSync.queue("Vaccination for " + currentChild.name, writes);
+      Object.keys(pending).forEach(function (code) { childVaccines[code] = pending[code]; });
+      renderAll();
+      setMsg("Saved on this device. Uploading and verifying...", "");
 
-        // Wait up to OFFLINE_MS for server confirmation; otherwise treat as saved locally.
-        const result = await Promise.race([
-          commitP.then(function () { return "synced"; }),
-          new Promise(function (r) { setTimeout(function () { r("pending"); }, OFFLINE_MS); })
-        ]);
+      const result = await JSSync.waitFor(jobId, 15000);
+      const note = problems.length ? " Not saved: " + problems.join("; ") + "." : "";
 
-        Object.keys(pending).forEach(function (code) { childVaccines[code] = pending[code]; });
-        renderAll();
-
-        if (result === "synced") {
-          var parts = [count + " vaccine date(s) saved to Database."];
-          if (problems.length) parts.push("Not saved: " + problems.join("; ") + ".");
-          setMsg(parts.join(" "), problems.length ? "err" : "ok");
-        } else {
-          setMsg(count + " vaccine date(s) saved on this device and will sync when you are back online.", "ok");
-        }
-      } catch (err) {
-        console.error(err);
-        var hint = err && err.code === "permission-denied"
-          ? "Permission denied by Firestore rules."
-          : "Failed to save. Check your connection.";
-        setMsg(hint, "err");
-      } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = "Save changes";
+      if (result === "verified") {
+        setMsg(count + " vaccine date(s) verified in the database." + note, problems.length ? "err" : "ok");
+      } else if (result === "denied") {
+        setMsg("Saved on this device only. Firestore rules blocked the upload (permission denied)." + note, "err");
+      } else {
+        setMsg(count + " vaccine date(s) saved on this device, not yet verified in the database. It keeps retrying automatically." + note, "");
+        watchers[jobId] = function () {
+          setMsg(count + " vaccine date(s) verified in the database.", "ok");
+        };
       }
+
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save changes";
     });
+
+    JSSync.mountBanner(document.querySelector(".vx-wrap"));
   </script>
   <script src="pwa.js"></script>
 </body>

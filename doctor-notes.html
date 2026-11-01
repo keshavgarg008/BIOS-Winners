@@ -47,6 +47,9 @@
 
     @media (max-width: 560px) { .row-2 { grid-template-columns: 1fr; } .btn { width: 100%; } }
   </style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#17243b">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body data-page="role" data-role="doctor">
   <a class="skip" href="#main">Skip to main content</a>
@@ -98,7 +101,7 @@
               <div class="row-2">
                 <div class="field">
                   <label for="f-child">Child ID</label>
-                  <input id="f-child" autocomplete="off" placeholder="CH-XXXX-XXXX" aria-describedby="child-info e-child">
+                  <input id="f-child" autocomplete="off" placeholder="Child ID (e.g. rahul_2024)" aria-describedby="child-info e-child">
                   <p class="child-info" id="child-info" aria-live="polite"></p>
                   <span class="err" id="e-child"></span>
                 </div>
@@ -140,99 +143,115 @@
   <script src="settings.js"></script>
   <script src="store.js"></script>
   <script type="module" src="app.js"></script>
+  <script type="module" src="sync.js"></script>
 
-  <!-- FIREBASE-CONNECTED TREATMENT NOTES SCRIPT -->
+  <!-- TREATMENT NOTES SCRIPT (offline-safe, verified saves) -->
   <script type="module">
-    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import {
-      initializeFirestore, getFirestore, persistentLocalCache,
-      collection, doc, getDoc, getDocs, writeBatch
+      collection, doc, getDoc, getDocs, getDocFromCache, getDocsFromCache
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
-      authDomain: "syncedd.firebaseapp.com",
-      projectId: "syncedd",
-      storageBucket: "syncedd.firebasestorage.app",
-      messagingSenderId: "784392339011",
-      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
-      measurementId: "G-8YVJKBCGFL"
-    };
+    // Shared Firestore instance and sync engine from sync.js
+    const db = window.JSSync.db;
 
-    // Reuse the app/Firestore instance if another script already created one
-    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    let db;
-    try {
-      db = initializeFirestore(app, { localCache: persistentLocalCache() });
-    } catch (e) {
-      db = getFirestore(app);
+    const NOTES_KEY = "gs_notes";   // local copy, kept until verified in Firestore
+    const OFFLINE_MS = 8000;        // how long to wait for the server before using the cache
+
+    function withTimeout(p) {
+      let timer;
+      const t = new Promise(function (_, rej) { timer = setTimeout(function () { rej(new Error("timeout")); }, OFFLINE_MS); });
+      return Promise.race([p, t]).finally(function () { clearTimeout(timer); });
     }
 
-    const NOTES_KEY = "gs_notes";   // local copy, kept until it reaches Firestore
-    const SAVE_TIMEOUT_MS = 8000;
+    // Returns { snap, online }. snap is null when neither the server nor the cache has it.
+    async function readDoc(ref) {
+      try { return { snap: await withTimeout(getDoc(ref)), online: true }; }
+      catch (e) {
+        try { return { snap: await getDocFromCache(ref), online: false }; }
+        catch (_) { return { snap: null, online: false }; }
+      }
+    }
+
+    async function readDocs(q) {
+      try { return { snap: await withTimeout(getDocs(q)), online: true }; }
+      catch (e) {
+        try { return { snap: await getDocsFromCache(q), online: false }; }
+        catch (_) { return { snap: null, online: false }; }
+      }
+    }
 
     function $(id) { return document.getElementById(id); }
     function pad(n) { return String(n).padStart(2, "0"); }
     function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
     function fmt(s) { return new Date(s + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
-    function normId(v) { return String(v || "").trim().toUpperCase(); }
     function readNotes() { try { return JSON.parse(localStorage.getItem(NOTES_KEY) || "[]"); } catch (e) { return []; } }
     function writeNotes(list) { try { localStorage.setItem(NOTES_KEY, JSON.stringify(list)); } catch (e) { console.error(e); } }
+    function markSynced(noteId) {
+      const list = readNotes();
+      list.forEach(function (r) { if (r.id === noteId) r.synced = true; });
+      writeNotes(list);
+    }
     function doctorName() {
       return sessionStorage.getItem("js_user") ||
         (window.GSStore && GSStore.deviceId ? GSStore.deviceId() : "Unknown Doctor");
     }
 
-    var today = iso(new Date());
-    var idIn = $("f-child"), dateIn = $("f-date"), noteIn = $("f-note");
-    var childInfo = $("child-info"), msg = $("form-msg"), saveBtn = $("save-btn");
-    var listBox = $("notes-list"), listHint = $("list-hint"), counter = $("note-count");
+    // Callbacks waiting for a background job to be verified
+    const watchers = {};
+    JSSync.onChange(function () {
+      Object.keys(watchers).forEach(function (id) {
+        if (JSSync.status(id) === "verified") {
+          const fn = watchers[id];
+          delete watchers[id];
+          fn();
+        }
+      });
+    });
+
+    const today = iso(new Date());
+    const idIn = $("f-child"), dateIn = $("f-date"), noteIn = $("f-note");
+    const childInfo = $("child-info"), msg = $("form-msg"), saveBtn = $("save-btn");
+    const listBox = $("notes-list"), listHint = $("list-hint"), counter = $("note-count");
 
     dateIn.max = today;
     dateIn.value = today;
 
-    var currentChild = null;   // { id (Firestore doc ID), name, dob, village }
-    var lookupToken = 0;       // ignores out-of-date async lookups
-    var lookupTimer = null;
+    let currentChild = null;   // { id (Firestore doc ID), name, dob, village }
+    let lookupToken = 0;       // ignores out-of-date async lookups
+    let lookupTimer = null;
 
     function setErr(input, key, text) {
       $("e-" + key).textContent = text || "";
       input.setAttribute("aria-invalid", text ? "true" : "false");
     }
 
-    // ---- Child lookup: Firestore first, then this device's local store ----
+    // Child lookup: Firestore (server, then cache) first, then this device's local store
     async function fetchChild(raw) {
-      var tries = [];
-      [raw.trim(), normId(raw), raw.trim().toLowerCase()].forEach(function (v) {
+      const tries = [];
+      [raw.trim().toLowerCase(), raw.trim()].forEach(function (v) {
         if (v && v.indexOf("/") === -1 && tries.indexOf(v) === -1) tries.push(v);
       });
 
-      var networkProblem = false;
-      for (var i = 0; i < tries.length; i++) {
-        try {
-          var snap = await getDoc(doc(db, "children", tries[i]));
-          if (snap.exists()) {
-            var d = snap.data();
-            return { id: snap.id, name: d.name || "", dob: d.dob || "", village: d.village || "", source: "cloud" };
-          }
-        } catch (e) {
-          console.error("Child lookup failed:", e);
-          networkProblem = true;
-          break;
+      let offline = false;
+      for (let i = 0; i < tries.length; i++) {
+        const r = await readDoc(doc(db, "children", tries[i]));
+        if (!r.online) offline = true;
+        if (r.snap && r.snap.exists()) {
+          const d = r.snap.data();
+          return { id: r.snap.id, name: d.name || "", dob: d.dob || "", village: d.village || "", source: "cloud" };
         }
       }
 
-      // Fallback: child registered only on this device
       if (window.GSStore && GSStore.getChild) {
-        var local = GSStore.getChild(normId(raw));
+        const local = GSStore.getChild(raw.trim().toLowerCase()) || GSStore.getChild(raw.trim());
         if (local) return { id: local.id, name: local.name, dob: local.dob, village: local.village, source: "local" };
       }
-      return networkProblem ? { error: true } : null;
+      return offline ? { error: true } : null;
     }
 
     async function lookup() {
-      var raw = idIn.value.trim();
-      var token = ++lookupToken;
+      const raw = idIn.value.trim();
+      const token = ++lookupToken;
 
       if (!raw) {
         currentChild = null;
@@ -244,12 +263,12 @@
       childInfo.textContent = "Checking...";
       childInfo.className = "child-info";
 
-      var c = await fetchChild(raw);
-      if (token !== lookupToken) return currentChild; // a newer lookup is running
+      const c = await fetchChild(raw);
+      if (token !== lookupToken) return currentChild;
 
       if (c && c.error) {
         currentChild = null;
-        childInfo.textContent = "Could not reach the database. Check your connection.";
+        childInfo.textContent = "Could not reach the database and this child is not saved on this device. Check your connection.";
         childInfo.className = "child-info bad";
         return null;
       }
@@ -267,7 +286,7 @@
       return c;
     }
 
-    // ---- Notes list: Firestore + any not-yet-synced local notes ----
+    // Notes list: Firestore (server, then cache) + any not-yet-verified local notes
     async function renderList() {
       listBox.textContent = "";
 
@@ -275,34 +294,30 @@
         listHint.textContent = "Enter a Child ID above to see its notes.";
         return;
       }
-      var child = currentChild;
+      const child = currentChild;
       listHint.textContent = "Loading notes...";
 
-      var byId = {};
-      var cloudFailed = false;
-      try {
-        var snap = await getDocs(collection(db, "children", child.id, "notes"));
-        snap.forEach(function (d) { var r = d.data(); r.id = d.id; r.synced = true; byId[d.id] = r; });
-      } catch (e) {
-        console.error("Could not load notes:", e);
-        cloudFailed = true;
+      const byId = {};
+      const r = await readDocs(collection(db, "children", child.id, "notes"));
+      const cloudFailed = !r.snap;
+      if (r.snap) {
+        r.snap.forEach(function (d) { const n = d.data(); n.id = d.id; n.synced = true; byId[d.id] = n; });
       }
 
-      // Merge in local notes for this child (includes ones waiting to sync)
-      readNotes().forEach(function (r) {
-        if (r.childId === child.id && !byId[r.id]) byId[r.id] = r;
+      readNotes().forEach(function (n) {
+        if (n.childId === child.id && !byId[n.id]) byId[n.id] = n;
       });
 
-      if (child !== currentChild) return; // user switched child meanwhile
+      if (child !== currentChild) return;
       listBox.textContent = "";
 
-      var items = Object.keys(byId).map(function (k) { return byId[k]; });
+      const items = Object.keys(byId).map(function (k) { return byId[k]; });
       items.sort(function (a, b) {
         if (a.date !== b.date) return a.date < b.date ? 1 : -1;
         return (a.createdAt || "") < (b.createdAt || "") ? 1 : -1;
       });
 
-      var warn = cloudFailed ? " Some notes could not be loaded from the database." : "";
+      const warn = cloudFailed ? " Some notes could not be loaded from the database." : "";
 
       if (!items.length) {
         listHint.textContent = "No treatment notes yet for this child." + warn;
@@ -311,15 +326,15 @@
       listHint.textContent = items.length + (items.length === 1 ? " note" : " notes") + ", newest first." + warn;
 
       items.forEach(function (n) {
-        var pending = n.synced === false;
-        var item = document.createElement("div");
+        const pending = n.synced === false;
+        const item = document.createElement("div");
         item.className = "note-item" + (pending ? " pending" : "");
 
-        var meta = document.createElement("div");
+        const meta = document.createElement("div");
         meta.className = "meta";
-        meta.textContent = fmt(n.date) + " · recorded by " + (n.doctor || "") + (pending ? " · waiting to sync" : "");
+        meta.textContent = fmt(n.date) + " · recorded by " + (n.doctor || "") + (pending ? " · waiting to verify" : "");
 
-        var body = document.createElement("p");
+        const body = document.createElement("p");
         body.textContent = n.note;
 
         item.append(meta, body);
@@ -340,9 +355,9 @@
       counter.textContent = noteIn.value.length + " / 500";
     });
 
-    // Prefill from ?child=CH-XXXX-XXXX
-    var param = new URLSearchParams(window.location.search).get("child");
-    if (param) idIn.value = normId(param);
+    // Prefill from ?child=rahul_2024 (usernames are lowercase, so do not uppercase)
+    const param = new URLSearchParams(window.location.search).get("child");
+    if (param) idIn.value = param.trim();
     lookupAndRender();
 
     // ---- Save ----
@@ -352,17 +367,17 @@
       msg.className = "form-msg";
 
       clearTimeout(lookupTimer);
-      var c = await lookup();
+      const c = await lookup();
 
-      var date = dateIn.value;
-      var note = noteIn.value.trim();
-      var first = null;
+      const date = dateIn.value;
+      const note = noteIn.value.trim();
+      let first = null;
 
       function bad(input, key, text) {
         setErr(input, key, text);
         if (!first) first = input;
       }
-      var map = { child: idIn, date: dateIn, note: noteIn };
+      const map = { child: idIn, date: dateIn, note: noteIn };
       Object.keys(map).forEach(function (k) { setErr(map[k], k, ""); });
 
       if (!c) bad(idIn, "child", "Enter a valid Child ID.");
@@ -377,73 +392,57 @@
         return;
       }
 
-      var noteId = "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      var stamp = new Date().toISOString();
-      var record = {
-        id: noteId,
+      const noteId = "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const stamp = new Date().toISOString();
+      const cloudRecord = {
         childId: c.id,
         date: date,
         note: note,
         doctor: doctorName(),
-        createdAt: stamp,
-        synced: false
+        createdAt: stamp
       };
+      const record = Object.assign({ id: noteId, synced: false }, cloudRecord);
 
       // 1) Save locally first so nothing is lost if the network drops
-      var all = readNotes();
+      const all = readNotes();
       all.push(record);
       writeNotes(all);
 
-      saveBtn.disabled = true;
-      saveBtn.textContent = "Saving...";
-
-      // 2) Save to Firestore:
-      //    children/{id}/notes/{noteId}  (full note)
-      //    children/{id}  ->  notes.{noteId}  (map on the child document)
-      var cloudRecord = {
-        childId: record.childId, date: record.date, note: record.note,
-        doctor: record.doctor, createdAt: record.createdAt
-      };
-      var summary = {};
+      // 2) Upload to:
+      //    children/{id}/notes/{noteId}      (full note)
+      //    children/{id} -> notes.{noteId}   (summary on the child document)
+      const summary = {};
       summary[noteId] = cloudRecord;
 
-      var batch = writeBatch(db);
-      batch.set(doc(db, "children", c.id, "notes", noteId), cloudRecord);
-      batch.set(doc(db, "children", c.id), {
-        notes: summary,
-        notesUpdatedAt: stamp,
-        notesUpdatedBy: record.doctor
-      }, { merge: true });
+      const jobId = JSSync.queue("Note for " + c.name, [
+        { path: "children/" + c.id + "/notes/" + noteId, data: cloudRecord },
+        {
+          path: "children/" + c.id,
+          data: { notes: summary, notesUpdatedAt: stamp, notesUpdatedBy: cloudRecord.doctor },
+          merge: true
+        }
+      ]);
 
-      var outcome = "ok";
-      var timer = null;
-      try {
-        await Promise.race([
-          batch.commit(),
-          new Promise(function (_, reject) {
-            timer = setTimeout(function () { reject({ code: "timeout" }); }, SAVE_TIMEOUT_MS);
-          })
-        ]);
-        // Mark the local copy as synced
-        var list = readNotes();
-        list.forEach(function (r) { if (r.id === noteId) r.synced = true; });
-        writeNotes(list);
-      } catch (err) {
-        console.error("Firestore save failed:", err);
-        outcome = err && err.code === "permission-denied" ? "denied" : "pending";
-      } finally {
-        clearTimeout(timer);
-      }
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+      msg.textContent = "Saved on this device. Uploading and verifying...";
 
-      if (outcome === "ok") {
-        msg.textContent = "Note saved to the database for " + c.name + ".";
+      const result = await JSSync.waitFor(jobId, 15000);
+
+      if (result === "verified") {
+        markSynced(noteId);
+        msg.textContent = "Verified: note is stored in the database for " + c.name + ".";
         msg.className = "form-msg ok";
-      } else if (outcome === "denied") {
+      } else if (result === "denied") {
         msg.textContent = "Saved on this device only. Firestore rules blocked the upload (permission denied).";
         msg.className = "form-msg";
       } else {
-        msg.textContent = "Saved on this device. It will upload automatically when the connection returns.";
-        msg.className = "form-msg ok";
+        msg.textContent = "Saved on this device, not yet verified in the database. It keeps retrying automatically.";
+        msg.className = "form-msg";
+        watchers[jobId] = function () {
+          markSynced(noteId);
+          renderList();
+        };
       }
 
       // Clear the note only, so the doctor can add the next note quickly
@@ -454,6 +453,9 @@
       saveBtn.textContent = "Save note";
       renderList();
     });
+
+    JSSync.mountBanner(document.querySelector(".notes-wrap"));
   </script>
+  <script src="pwa.js"></script>
 </body>
 </html>

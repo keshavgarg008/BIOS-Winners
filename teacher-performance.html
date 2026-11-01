@@ -6,52 +6,43 @@
   <title>Class performance – JeevanSetu</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    :root { --navy: #17243b; --navy2: #243b5a; --blue: #3569b8; --line: #c9d6ea; --muted: #5b6a80; --red: #9b1c1c; --green: #0d5c06; }
-    .perf-wrap { max-width: 780px; margin: 0 auto; color: var(--navy); padding-bottom: 2rem; }
-    .back-link { display: inline-block; margin: 1rem 0 0.5rem; color: var(--blue); font-weight: 600; }
-    .page-title h1 { margin: 0.2rem 0 0.25rem; font-size: 1.8rem; }
-    .page-title .sub { margin: 0.1rem 0; color: var(--muted); }
-    .page-title .welcome { margin-top: 0.5rem; color: var(--muted); font-size: 0.95rem; }
-
-    .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 1.2rem 1.4rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(23,36,59,0.06); }
-    .card h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
-    .hint { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; }
-
-    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem 1.25rem; }
-    .field { display: flex; flex-direction: column; gap: 0.35rem; }
-    .field.full { grid-column: 1 / -1; }
-    .field label { font-weight: 600; }
-    .field .opt { font-weight: 400; color: var(--muted); }
-    .field input, .field select, .field textarea {
-      padding: 0.6rem 0.7rem; border: 1px solid #9fb3d1; border-radius: 6px;
-      font: inherit; background: #fff; color: var(--navy); min-height: 2.6rem;
-    }
-    .field textarea { min-height: 6rem; resize: vertical; }
-    .field input:focus, .field select:focus, .field textarea:focus { outline: 3px solid #9ec2f0; border-color: var(--blue); }
-    .field [aria-invalid="true"] { border-color: var(--red); background: #fff6f6; }
-    .field .help { font-size: 0.85rem; color: var(--muted); }
-    .field .err { font-size: 0.88rem; color: var(--red); font-weight: 600; }
-    .field .err:empty { display: none; }
-    .child-info { font-size: 0.92rem; margin: 0; min-height: 1.2em; color: var(--muted); }
-    .child-info.ok { color: var(--green); font-weight: 600; }
-    .child-info.bad { color: var(--red); font-weight: 600; }
-    .counter { font-size: 0.82rem; color: var(--muted); text-align: right; }
-
-    .btn { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 0.7rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer; }
-    .btn:hover, .btn:focus-visible { background: var(--navy2); outline: 3px solid #9ec2f0; }
-    .btn:disabled { opacity: 0.6; cursor: wait; }
-    .form-msg { font-weight: 600; min-height: 1.2em; margin: 0.75rem 0 0; color: var(--red); }
-    .form-msg.ok { color: var(--green); }
-
-    .entry { border-left: 4px solid var(--blue); background: #f6f9fd; border-radius: 6px; padding: 0.7rem 0.9rem; margin-top: 0.6rem; }
-    .entry.pending { border-left-color: #f28c1b; }
-    .entry .top { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; font-weight: 700; }
-    .entry .meta { font-size: 0.85rem; color: var(--muted); margin-top: 0.15rem; }
-    .entry ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
-    .entry p { margin: 0.4rem 0 0; white-space: pre-wrap; }
-
-    @media (max-width: 560px) { .btn { width: 100%; } }
+    :root { --navy:#17243b; --blue:#3569b8; --line:#c9d6ea; --muted:#5b6a80; --red:#9b1c1c; --green:#0d5c06; --orange:#f28c1b; }
+    .perf { max-width:780px; margin:0 auto; color:var(--navy); padding-bottom:2rem; }
+    .back-link { display:inline-block; margin:1rem 0 .5rem; color:var(--blue); font-weight:600; }
+    h1 { margin:.2rem 0 .25rem; font-size:1.8rem; }
+    .sub { margin:.1rem 0; color:var(--muted); }
+    .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:1.2rem 1.4rem; margin:1rem 0; }
+    .card h2 { margin:0 0 .25rem; font-size:1.15rem; }
+    .opt { font-weight:400; color:var(--muted); font-size:.9rem; }
+    .hint { margin:0 0 1rem; color:var(--muted); font-size:.92rem; }
+    .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1rem 1.25rem; }
+    .field { display:flex; flex-direction:column; gap:.35rem; }
+    .field label { font-weight:600; }
+    .field input, .field select, .field textarea { padding:.6rem .7rem; border:1px solid #9fb3d1; border-radius:6px; font:inherit; min-height:2.6rem; background:#fff; color:var(--navy); }
+    .field textarea { min-height:6rem; resize:vertical; }
+    .field [aria-invalid="true"] { border-color:var(--red); background:#fff6f6; }
+    .err { font-size:.88rem; color:var(--red); font-weight:600; }
+    .err:empty { display:none; }
+    .info { font-size:.92rem; margin:0; min-height:1.2em; color:var(--muted); }
+    .info.ok { color:var(--green); font-weight:600; }
+    .info.bad { color:var(--red); font-weight:600; }
+    .counter { font-size:.82rem; color:var(--muted); text-align:right; }
+    .btn { background:var(--blue); color:#fff; border:0; border-radius:6px; padding:.7rem 1.4rem; font:inherit; font-weight:600; cursor:pointer; }
+    .btn:disabled { opacity:.6; cursor:wait; }
+    .btn:focus-visible { outline:3px solid #9ec2f0; }
+    .msg { font-weight:600; min-height:1.2em; margin:.75rem 0 0; color:var(--red); }
+    .msg.ok { color:var(--green); }
+    .entry { border-left:4px solid var(--blue); background:#f6f9fd; border-radius:6px; padding:.7rem .9rem; margin-top:.6rem; }
+    .entry.pending { border-left-color:var(--orange); }
+    .entry .top { display:flex; justify-content:space-between; flex-wrap:wrap; gap:.5rem; font-weight:700; }
+    .entry .meta { font-size:.85rem; color:var(--muted); margin-top:.15rem; }
+    .entry p { margin:.4rem 0 0; white-space:pre-wrap; }
+    .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+    @media (max-width:560px) { .btn { width:100%; } }
   </style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#17243b">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body data-page="role" data-role="teacher">
   <a class="skip" href="#main">Skip to main content</a>
@@ -59,15 +50,8 @@
   <header class="site-header">
     <div class="wrap header-row">
       <a class="brand" href="index.html" aria-label="JeevanSetu home">
-        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
-          <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
-          <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
-          <rect x="0" y="150" width="200" height="14" fill="#138808"/>
-        </svg>
-        <span class="brand-text">
-          <strong>JeevanSetu</strong>
-          <span>Child vaccination and development records</span>
-        </span>
+        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true"><path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/><circle cx="100" cy="112" r="22" fill="#F28C1B"/><rect x="0" y="150" width="200" height="14" fill="#138808"/></svg>
+        <span class="brand-text"><strong>JeevanSetu</strong><span>Child vaccination and development records</span></span>
       </a>
       <div class="dash-bar">
         <span class="badge" id="role-badge">Teacher</span>
@@ -85,114 +69,84 @@
       </div>
 
       <div id="content" hidden>
-        <div class="perf-wrap">
+        <div class="perf">
           <a class="back-link" href="school.html">&larr; Dashboard</a>
-
-          <div class="page-title">
-            <h1>Class performance</h1>
-            <p class="sub" lang="hi">कक्षा प्रदर्शन</p>
-            <p class="sub" lang="pa">ਕਲਾਸ ਪ੍ਰਦਰਸ਼ਨ</p>
-            <p class="welcome" id="welcome"></p>
-          </div>
+          <h1>Class performance</h1>
+          <p class="sub" lang="hi">कक्षा प्रदर्शन</p>
+          <p class="sub" lang="pa">ਕਲਾਸ ਪ੍ਰਦਰਸ਼ਨ</p>
+          <p class="sub" id="welcome"></p>
 
           <form id="perf-form" novalidate>
-            <section class="card" aria-labelledby="h-child">
-              <h2 id="h-child">Child</h2>
+            <section class="card">
+              <h2>Child</h2>
               <p class="hint">Enter the Child ID given at registration.</p>
               <div class="fields">
                 <div class="field">
                   <label for="f-child">Child ID</label>
-                  <input id="f-child" autocomplete="off" placeholder="CH-XXXX-XXXX" aria-describedby="child-info e-child">
-                  <p class="child-info" id="child-info" aria-live="polite"></p>
+                  <input id="f-child" autocomplete="off" placeholder="Child ID (e.g. rahul_2024)">
+                  <p class="info" id="child-info" aria-live="polite"></p>
                   <span class="err" id="e-child"></span>
                 </div>
                 <div class="field">
                   <label for="f-date">Date of entry</label>
-                  <input id="f-date" type="date" aria-describedby="e-date">
+                  <input id="f-date" type="date">
                   <span class="err" id="e-date"></span>
                 </div>
               </div>
             </section>
 
-            <section class="card" aria-labelledby="h-perf">
-              <h2 id="h-perf">Class performance</h2>
+            <section class="card">
+              <h2>Class performance</h2>
               <div class="fields">
                 <div class="field">
-                  <label for="f-class">Class</label>
-                  <select id="f-class" aria-describedby="e-class">
-                    <option value="">Select</option>
-                    <option>Nursery</option>
-                    <option>LKG</option>
-                    <option>UKG</option>
-                    <option>Class 1</option>
-                    <option>Class 2</option>
-                    <option>Class 3</option>
-                    <option>Class 4</option>
-                    <option>Class 5</option>
-                    <option>Class 6</option>
-                    <option>Class 7</option>
-                    <option>Class 8</option>
-                    <option>Class 9</option>
-                    <option>Class 10</option>
-                    <option>Class 11</option>
-                    <option>Class 12</option>
-                  </select>
-                  <span class="err" id="e-class"></span>
+                  <label for="f-cls">Class</label>
+                  <select id="f-cls"></select>
+                  <span class="err" id="e-cls"></span>
                 </div>
                 <div class="field">
                   <label for="f-att">Attendance (%)</label>
-                  <input id="f-att" type="number" min="0" max="100" step="0.1" inputmode="decimal" aria-describedby="h-att e-att">
-                  <span class="help" id="h-att">A number from 0 to 100</span>
+                  <input id="f-att" type="number" min="0" max="100" step="0.1" inputmode="decimal">
                   <span class="err" id="e-att"></span>
                 </div>
                 <div class="field">
                   <label for="f-grade">Grade</label>
-                  <select id="f-grade" aria-describedby="e-grade">
-                    <option value="">Select</option>
-                    <option>A+</option>
-                    <option>A</option>
-                    <option>B+</option>
-                    <option>B</option>
-                    <option>C</option>
-                    <option>D</option>
-                    <option>E</option>
-                  </select>
+                  <select id="f-grade"></select>
                   <span class="err" id="e-grade"></span>
                 </div>
               </div>
             </section>
 
-            <section class="card" aria-labelledby="h-ach">
-              <h2 id="h-ach">Achievement <span class="opt" style="font-weight:400;color:#5b6a80;">(optional)</span></h2>
+            <section class="card">
+              <h2>Achievement <span class="opt">(optional)</span></h2>
               <p class="hint">Fill both fields if the child took part in a competition.</p>
               <div class="fields">
                 <div class="field">
                   <label for="f-comp">Competition name</label>
-                  <input id="f-comp" maxlength="100" autocomplete="off" aria-describedby="e-comp">
+                  <input id="f-comp" maxlength="100" autocomplete="off">
                   <span class="err" id="e-comp"></span>
                 </div>
                 <div class="field">
                   <label for="f-pos">Position</label>
-                  <input id="f-pos" maxlength="40" autocomplete="off" placeholder="e.g. 1st, Winner, Participation" aria-describedby="e-pos">
+                  <input id="f-pos" maxlength="40" autocomplete="off" placeholder="e.g. 1st, Winner, Participation">
                   <span class="err" id="e-pos"></span>
                 </div>
               </div>
             </section>
 
-            <section class="card" aria-labelledby="h-note">
-              <h2 id="h-note">Note <span class="opt" style="font-weight:400;color:#5b6a80;">(optional)</span></h2>
+            <section class="card">
+              <h2>Note <span class="opt">(optional)</span></h2>
               <div class="field">
-                <label class="sr-only" for="f-note" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Note</label>
-                <textarea id="f-note" maxlength="500" aria-describedby="note-count"></textarea>
+                <label class="sr-only" for="f-note">Note</label>
+                <textarea id="f-note" maxlength="500"></textarea>
                 <span class="counter" id="note-count">0 / 500</span>
               </div>
-              <p class="form-msg" id="form-msg" role="status" aria-live="polite"></p>
+              <p class="msg" id="form-msg" role="status" aria-live="polite"></p>
               <p><button class="btn" id="save-btn" type="submit">Save performance</button></p>
             </section>
           </form>
 
-          <section class="card" aria-labelledby="h-list">
-            <h2 id="h-list">Entries for this child</h2>
+          <section class="card">
+            <h2>Entries for this child</h2>
             <p class="hint" id="list-hint">Enter a Child ID above to see its entries.</p>
             <div id="entries"></div>
           </section>
@@ -201,356 +155,222 @@
     </div>
   </main>
 
-  <footer class="site-footer">
-    <div class="wrap">
-      <p>Made with ♡ by Jeevansetu</p>
-    </div>
-  </footer>
+  <footer class="site-footer"><div class="wrap"><p>Made with ♡ by Jeevansetu</p></div></footer>
 
   <script src="settings.js"></script>
   <script src="store.js"></script>
   <script type="module" src="app.js"></script>
+  <script type="module" src="sync.js"></script>
 
-  <!-- FIREBASE-CONNECTED CLASS PERFORMANCE SCRIPT -->
   <script type="module">
-    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import {
-      initializeFirestore, getFirestore, persistentLocalCache,
-      collection, doc, getDoc, getDocs, writeBatch
-    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { collection, doc, getDoc, getDocs, getDocFromCache, getDocsFromCache } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
-      authDomain: "syncedd.firebaseapp.com",
-      projectId: "syncedd",
-      storageBucket: "syncedd.firebasestorage.app",
-      messagingSenderId: "784392339011",
-      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
-      measurementId: "G-8YVJKBCGFL"
-    };
+    const db = window.JSSync.db;
+    const KEY = "gs_teacher_reports";   // local copy, also read by parent-report.html
+    const TIMEOUT = 8000;
+    const ERR_KEYS = ["child", "date", "cls", "att", "grade", "comp", "pos"];
+    const $ = id => document.getElementById(id);
+    const f = { child: $("f-child"), date: $("f-date"), cls: $("f-cls"), att: $("f-att"), grade: $("f-grade"), comp: $("f-comp"), pos: $("f-pos"), note: $("f-note") };
+    const info = $("child-info"), msg = $("form-msg"), saveBtn = $("save-btn");
 
-    // Reuse the app/Firestore instance if another script already created one
-    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    let db;
-    try {
-      db = initializeFirestore(app, { localCache: persistentLocalCache() });
-    } catch (e) {
-      db = getFirestore(app);
-    }
+    let child = null, cloud = [], cloudFailed = false, lookupToken = 0, cloudToken = 0, timer = null;
 
-    const KEY = "gs_teacher_reports"; // local copy, also read by parent-reports.html
-    const SAVE_TIMEOUT_MS = 8000;
+    const pad = n => String(n).padStart(2, "0");
+    const today = (d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()))(new Date());
+    const fmt = s => new Date(s + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
-    function $(id) { return document.getElementById(id); }
-    function pad(n) { return String(n).padStart(2, "0"); }
-    function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
-    function fmt(s) { return new Date(s + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
-    function normId(v) { return String(v || "").trim().toUpperCase(); }
-    function readLocal() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
-    function writeLocal(list) { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) { console.error(e); } }
-    function workerName() {
-      return sessionStorage.getItem("js_user") ||
-        (window.GSStore && GSStore.deviceId ? GSStore.deviceId() : "Unknown Teacher");
-    }
-
-    var today = iso(new Date());
-    var f = {
-      child: $("f-child"), date: $("f-date"), cls: $("f-class"), att: $("f-att"),
-      grade: $("f-grade"), comp: $("f-comp"), pos: $("f-pos"), note: $("f-note")
-    };
-    var info = $("child-info"), msg = $("form-msg"), saveBtn = $("save-btn");
-
+    // Fill dropdowns and date limits
+    ["Nursery", "LKG", "UKG"].concat(Array.from({ length: 12 }, (_, i) => "Class " + (i + 1)))
+      .forEach(c => $("f-cls").add(new Option(c, c)));
+    ["A+", "A", "B+", "B", "C", "D", "E"].forEach(g => $("f-grade").add(new Option(g, g)));
+    $("f-cls").add(new Option("Select", ""), 0);
+    $("f-grade").add(new Option("Select", ""), 0);
     f.date.max = today;
     f.date.value = today;
 
-    var currentChild = null;   // { id (Firestore doc ID), name, dob, village }
-    var lookupToken = 0;       // ignores out-of-date async lookups
-    var lookupTimer = null;
-
-    function setErr(input, key, text) {
-      $("e-" + key).textContent = text || "";
-      input.setAttribute("aria-invalid", text ? "true" : "false");
+    // Server read with timeout; if offline, use the local cache
+    async function read(ref, single) {
+      const srv = single ? getDoc : getDocs, cache = single ? getDocFromCache : getDocsFromCache;
+      let t;
+      try {
+        const snap = await Promise.race([srv(ref), new Promise((_, rej) => { t = setTimeout(() => rej(new Error("timeout")), TIMEOUT); })]);
+        return { snap, online: true };
+      } catch (e) {
+        try { return { snap: await cache(ref), online: false }; } catch (_) { return { snap: null, online: false }; }
+      } finally { clearTimeout(t); }
     }
 
-    // ---- Child lookup: Firestore first, then this device's local store ----
-    async function fetchChild(raw) {
-      var tries = [];
-      [raw.trim(), normId(raw), raw.trim().toLowerCase()].forEach(function (v) {
-        if (v && v.indexOf("/") === -1 && tries.indexOf(v) === -1) tries.push(v);
-      });
-
-      var networkProblem = false;
-      for (var i = 0; i < tries.length; i++) {
-        try {
-          var snap = await getDoc(doc(db, "children", tries[i]));
-          if (snap.exists()) {
-            var d = snap.data();
-            return { id: snap.id, name: d.name || "", dob: d.dob || "", village: d.village || "", source: "cloud" };
-          }
-        } catch (e) {
-          console.error("Child lookup failed:", e);
-          networkProblem = true;
-          break;
+    async function findChild(raw) {
+      const ids = [...new Set([raw.toLowerCase(), raw, raw.toUpperCase()])];
+      let offline = false;
+      for (const id of ids) {
+        if (id.includes("/")) continue;
+        const r = await read(doc(db, "children", id), true);
+        if (!r.online) offline = true;
+        if (r.snap && r.snap.exists()) {
+          const d = r.snap.data();
+          return { id: r.snap.id, name: d.name || "", dob: d.dob || "", village: d.village || "" };
         }
       }
+      const local = window.GSStore && GSStore.getChild && (GSStore.getChild(raw.toLowerCase()) || GSStore.getChild(raw));
+      if (local) return { id: local.id, name: local.name, dob: local.dob, village: local.village };
+      return offline ? { error: true } : null;
+    }
 
-      // Fallback: child registered only on this device
-      if (window.GSStore && GSStore.getChild) {
-        var local = GSStore.getChild(normId(raw));
-        if (local) return { id: local.id, name: local.name, dob: local.dob, village: local.village, source: "local" };
-      }
-      return networkProblem ? { error: true } : null;
+    function setInfo(text, cls) { info.textContent = text; info.className = "info" + (cls ? " " + cls : ""); }
+    function setErr(key, text) {
+      $("e-" + key).textContent = text || "";
+      f[key].setAttribute("aria-invalid", text ? "true" : "false");
     }
 
     async function lookup() {
-      var raw = f.child.value.trim();
-      var token = ++lookupToken;
-
-      if (!raw) {
-        currentChild = null;
-        info.textContent = "";
-        info.className = "child-info";
-        return null;
+      const raw = f.child.value.trim(), my = ++lookupToken;
+      if (!raw) { child = null; setInfo(""); cloud = []; render(); return null; }
+      setInfo("Checking...");
+      const c = await findChild(raw);
+      if (my !== lookupToken) return child;
+      if (c && c.error) { child = null; setInfo("Could not reach the database and this child is not saved on this device.", "bad"); }
+      else if (!c) { child = null; setInfo("No child found with this ID.", "bad"); }
+      else {
+        child = c;
+        setInfo(c.name + (c.dob ? " · born " + fmt(c.dob) : "") + (c.village ? " · " + c.village : ""), "ok");
+        if (c.dob) f.date.min = c.dob;
       }
-
-      info.textContent = "Checking...";
-      info.className = "child-info";
-
-      var c = await fetchChild(raw);
-      if (token !== lookupToken) return currentChild; // a newer lookup is running
-
-      if (c && c.error) {
-        currentChild = null;
-        info.textContent = "Could not reach the database. Check your connection.";
-        info.className = "child-info bad";
-        return null;
-      }
-      if (!c) {
-        currentChild = null;
-        info.textContent = "No child found with this ID.";
-        info.className = "child-info bad";
-        return null;
-      }
-
-      currentChild = c;
-      info.textContent = c.name + (c.dob ? " · born " + fmt(c.dob) : "") + (c.village ? " · " + c.village : "");
-      info.className = "child-info ok";
-      if (c.dob) f.date.min = c.dob;
-      return c;
+      await loadCloud();
+      return child;
     }
 
-    // ---- Entries list: Firestore + any not-yet-synced local entries ----
-    async function renderEntries() {
-      var box = $("entries"), hint = $("list-hint");
-      var token = lookupToken;
+    async function loadCloud() {
+      const me = child, t = ++cloudToken;
+      let list = [], failed = false;
+      if (me) {
+        const r = await read(collection(db, "children", me.id, "performance"), false);
+        failed = !r.snap;
+        if (r.snap) r.snap.forEach(d => list.push(Object.assign({}, d.data(), { id: d.id })));
+      }
+      if (t !== cloudToken) return;   // a newer lookup has started
+      cloud = list;
+      cloudFailed = failed;
+      render();
+    }
+
+    function localList() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
+
+    function render() {
+      const box = $("entries"), hint = $("list-hint");
       box.textContent = "";
+      if (!child) { hint.textContent = "Enter a Child ID above to see its entries."; return; }
 
-      if (!currentChild) {
-        hint.textContent = "Enter a Child ID above to see its entries.";
-        return;
-      }
-      var child = currentChild;
-      hint.textContent = "Loading entries...";
-
-      var byId = {};
-      try {
-        var snap = await getDocs(collection(db, "children", child.id, "performance"));
-        snap.forEach(function (d) { var r = d.data(); r.id = d.id; r.synced = true; byId[d.id] = r; });
-      } catch (e) {
-        console.error("Could not load entries:", e);
-      }
-
-      // Merge in local entries for this child (includes ones waiting to sync)
-      readLocal().forEach(function (r) {
-        if (r.childId === child.id && !byId[r.id]) byId[r.id] = r;
+      const seen = {}, items = [];
+      cloud.forEach(x => { seen[x.id] = true; items.push(Object.assign({}, x, { state: "verified" })); });
+      localList().forEach(x => {
+        if (x.childId !== child.id || seen[x.id]) return;
+        const s = JSSync.status(x.jobId);
+        items.push(Object.assign({}, x, { state: s === "verified" ? "verified" : s === "denied" ? "denied" : "pending" }));
       });
 
-      if (child !== currentChild) return; // user switched child meanwhile
-      box.textContent = "";
+      items.sort((a, b) => a.date !== b.date ? (a.date < b.date ? 1 : -1) : ((a.createdAt || "") < (b.createdAt || "") ? 1 : -1));
 
-      var list = Object.keys(byId).map(function (k) { return byId[k]; });
-      list.sort(function (a, b) {
-        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-        return (a.createdAt || "") < (b.createdAt || "") ? 1 : -1;
-      });
+      const warn = cloudFailed ? " Some entries could not be loaded from the database." : "";
+      hint.textContent = items.length
+        ? items.length + (items.length === 1 ? " entry" : " entries") + ", newest first." + warn
+        : "No class performance entries yet for this child." + warn;
 
-      if (!list.length) {
-        hint.textContent = "No class performance entries yet for this child.";
-        return;
-      }
-      hint.textContent = list.length + (list.length === 1 ? " entry" : " entries") + ", newest first.";
-
-      list.forEach(function (r) {
-        var item = document.createElement("div");
-        item.className = "entry" + (r.synced === false ? " pending" : "");
-
-        var top = document.createElement("div");
+      const label = { verified: "Verified in database", pending: "Waiting to verify", denied: "Not uploaded (permission denied)" };
+      items.forEach(x => {
+        const el = document.createElement("div");
+        el.className = "entry" + (x.state === "verified" ? "" : " pending");
+        const top = document.createElement("div");
         top.className = "top";
-        var left = document.createElement("span");
-        left.textContent = r.className + " · Grade " + r.grade;
-        var right = document.createElement("span");
-        right.textContent = "Attendance " + r.attendance + "%";
-        top.append(left, right);
-
-        var meta = document.createElement("div");
+        const a = document.createElement("span"); a.textContent = x.className + " · Grade " + x.grade;
+        const b = document.createElement("span"); b.textContent = "Attendance " + x.attendance + "%";
+        top.append(a, b);
+        const meta = document.createElement("div");
         meta.className = "meta";
-        meta.textContent = fmt(r.date) + " · " + (r.teacher || "") + (r.synced === false ? " · waiting to sync" : "");
-
-        item.append(top, meta);
-
-        if (r.competition) {
-          var ul = document.createElement("ul");
-          var li = document.createElement("li");
-          li.textContent = "Achievement: " + r.competition + " – " + r.position;
-          ul.appendChild(li);
-          item.appendChild(ul);
-        }
-        if (r.note) {
-          var p = document.createElement("p");
-          p.textContent = r.note;
-          item.appendChild(p);
-        }
-        box.appendChild(item);
+        meta.textContent = fmt(x.date) + " · " + (x.teacher || "") + " · " + label[x.state];
+        el.append(top, meta);
+        if (x.competition) { const p = document.createElement("p"); p.textContent = "Achievement: " + x.competition + " – " + x.position; el.appendChild(p); }
+        if (x.note) { const p = document.createElement("p"); p.textContent = x.note; el.appendChild(p); }
+        box.appendChild(el);
       });
     }
 
-    async function lookupAndRender() {
-      await lookup();
-      await renderEntries();
-    }
+    f.child.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(lookup, 350); });
+    f.note.addEventListener("input", () => { $("note-count").textContent = f.note.value.length + " / 500"; });
 
-    f.child.addEventListener("input", function () {
-      clearTimeout(lookupTimer);
-      lookupTimer = setTimeout(lookupAndRender, 350);
-    });
-    f.note.addEventListener("input", function () { $("note-count").textContent = f.note.value.length + " / 500"; });
-
-    var param = new URLSearchParams(window.location.search).get("child");
-    if (param) f.child.value = normId(param);
-    lookupAndRender();
-
-    // ---- Save ----
-    $("perf-form").addEventListener("submit", async function (e) {
+    $("perf-form").addEventListener("submit", async e => {
       e.preventDefault();
-      msg.textContent = "";
-      msg.className = "form-msg";
+      msg.textContent = ""; msg.className = "msg";
+      clearTimeout(timer);
+      const c = await lookup();
 
-      clearTimeout(lookupTimer);
-      var c = await lookup();
+      const date = f.date.value, cls = f.cls.value, grade = f.grade.value;
+      const attRaw = f.att.value.trim(), att = parseFloat(attRaw);
+      const comp = f.comp.value.trim(), pos = f.pos.value.trim(), note = f.note.value.trim();
 
-      var date = f.date.value, cls = f.cls.value, grade = f.grade.value;
-      var attRaw = f.att.value.trim(), att = parseFloat(attRaw);
-      var comp = f.comp.value.trim(), pos = f.pos.value.trim(), note = f.note.value.trim();
-      var first = null;
+      const checks = [
+        ["child", !c, "Enter a valid Child ID."],
+        ["date", !date, "Choose the date."],
+        ["date", date > today, "The date cannot be in the future."],
+        ["date", c && c.dob && date && date < c.dob, "The date is before the child's date of birth."],
+        ["cls", !cls, "Select the class."],
+        ["att", attRaw === "" || isNaN(att), "Enter the attendance percentage."],
+        ["att", !isNaN(att) && (att < 0 || att > 100), "Attendance must be between 0 and 100."],
+        ["grade", !grade, "Select the grade."],
+        ["comp", pos && !comp, "Enter the competition name."],
+        ["pos", comp && !pos, "Enter the position for this competition."]
+      ];
+      ERR_KEYS.forEach(k => setErr(k, ""));
+      let first = null;
+      checks.forEach(([key, bad, text]) => {
+        if (!bad) return;
+        if (!$("e-" + key).textContent) setErr(key, text);
+        if (!first) first = f[key];
+      });
+      if (first) { msg.textContent = "Please fix the highlighted fields."; first.focus(); return; }
 
-      function bad(input, key, text) {
-        setErr(input, key, text);
-        if (!first) first = input;
-      }
-      var map = { child: f.child, date: f.date, "class": f.cls, att: f.att, grade: f.grade, comp: f.comp, pos: f.pos };
-      Object.keys(map).forEach(function (k) { setErr(map[k], k, ""); });
+      // 1) Durable outbox job: upload + read-back verification
+      const id = "T-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const stamp = new Date().toISOString();
+      const teacher = sessionStorage.getItem("js_user") || (window.GSStore && GSStore.deviceId ? GSStore.deviceId() : "Unknown Teacher");
+      const data = { childId: c.id, date, className: cls, attendance: att, grade, competition: comp, position: pos, note, teacher, createdAt: stamp };
+      const jobId = JSSync.queue("Performance for " + c.name, [
+        { path: "children/" + c.id + "/performance/" + id, data },
+        { path: "children/" + c.id, data: { performance: { [id]: data }, performanceUpdatedAt: stamp, performanceUpdatedBy: teacher }, merge: true }
+      ]);
 
-      if (!c) bad(f.child, "child", "Enter a valid Child ID.");
-      if (!date) bad(f.date, "date", "Choose the date.");
-      else if (date > today) bad(f.date, "date", "The date cannot be in the future.");
-      else if (c && c.dob && date < c.dob) bad(f.date, "date", "The date is before the child's date of birth.");
-      if (!cls) bad(f.cls, "class", "Select the class.");
-      if (attRaw === "" || isNaN(att)) bad(f.att, "att", "Enter the attendance percentage.");
-      else if (att < 0 || att > 100) bad(f.att, "att", "Attendance must be between 0 and 100.");
-      if (!grade) bad(f.grade, "grade", "Select the grade.");
-      if (comp && !pos) bad(f.pos, "pos", "Enter the position for this competition.");
-      if (pos && !comp) bad(f.comp, "comp", "Enter the competition name.");
+      // 2) Local copy, linked to the job, so it shows even offline
+      const list = localList();
+      list.push(Object.assign({ id, jobId }, data));
+      try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (err) { console.error(err); }
 
-      if (first) {
-        msg.textContent = "Please fix the highlighted fields.";
-        first.focus();
-        return;
-      }
-
-      var entryId = "T-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      var stamp = new Date().toISOString();
-      var record = {
-        id: entryId,
-        childId: c.id,
-        date: date,
-        className: cls,
-        attendance: att,
-        grade: grade,
-        competition: comp,
-        position: pos,
-        note: note,
-        teacher: workerName(),
-        createdAt: stamp,
-        synced: false
-      };
-
-      // 1) Save locally first so nothing is lost if the network drops
-      var all = readLocal();
-      all.push(record);
-      writeLocal(all);
-
-      saveBtn.disabled = true;
-      saveBtn.textContent = "Saving...";
-
-      // 2) Save to Firestore:
-      //    children/{id}/performance/{entryId}  (full entry)
-      //    children/{id}  ->  performance.{entryId}  (map on the child document)
-      var cloudRecord = {
-        childId: record.childId, date: record.date, className: record.className,
-        attendance: record.attendance, grade: record.grade, competition: record.competition,
-        position: record.position, note: record.note, teacher: record.teacher, createdAt: record.createdAt
-      };
-      var summary = {};
-      summary[entryId] = cloudRecord;
-
-      var batch = writeBatch(db);
-      batch.set(doc(db, "children", c.id, "performance", entryId), cloudRecord);
-      batch.set(doc(db, "children", c.id), {
-        performance: summary,
-        performanceUpdatedAt: stamp,
-        performanceUpdatedBy: record.teacher
-      }, { merge: true });
-
-      var outcome = "ok";
-      try {
-        await Promise.race([
-          batch.commit(),
-          new Promise(function (_, reject) {
-            setTimeout(function () { reject({ code: "timeout" }); }, SAVE_TIMEOUT_MS);
-          })
-        ]);
-        // Mark the local copy as synced
-        var list = readLocal();
-        list.forEach(function (r) { if (r.id === entryId) r.synced = true; });
-        writeLocal(list);
-      } catch (err) {
-        console.error("Firestore save failed:", err);
-        outcome = err && err.code === "permission-denied" ? "denied" : "pending";
-      }
-
-      if (outcome === "ok") {
-        msg.textContent = "Performance saved to the database for " + c.name + ".";
-        msg.className = "form-msg ok";
-      } else if (outcome === "denied") {
-        msg.textContent = "Saved on this device only. Firestore rules blocked the upload (permission denied).";
-        msg.className = "form-msg";
-      } else {
-        msg.textContent = "Saved on this device. It will upload automatically when the connection returns.";
-        msg.className = "form-msg ok";
-      }
-
-      // Clear everything except the child and date so the teacher can enter the next child quickly
-      f.att.value = "";
-      f.grade.value = "";
-      f.comp.value = "";
-      f.pos.value = "";
-      f.note.value = "";
+      ["att", "grade", "comp", "pos", "note"].forEach(k => { f[k].value = ""; });
       $("note-count").textContent = "0 / 500";
+      saveBtn.disabled = true; saveBtn.textContent = "Saving...";
+      msg.textContent = "Saved on this device. Uploading and verifying...";
+      render();
 
-      saveBtn.disabled = false;
-      saveBtn.textContent = "Save performance";
-      renderEntries();
+      // 3) Wait for the verified result
+      const result = await JSSync.waitFor(jobId, 15000);
+      if (result === "verified") {
+        msg.textContent = "Verified: performance is stored in the database for " + c.name + ".";
+        msg.className = "msg ok";
+      } else if (result === "denied") {
+        msg.textContent = "Saved on this device only. Firestore rules blocked the upload (permission denied).";
+      } else {
+        msg.textContent = "Saved on this device, not yet verified. It keeps retrying automatically.";
+      }
+      saveBtn.disabled = false; saveBtn.textContent = "Save performance";
+      render();
+      loadCloud();
     });
+
+    JSSync.onChange(() => render());
+    JSSync.mountBanner(document.querySelector(".perf"));
+    const param = new URLSearchParams(location.search).get("child");
+    if (param) f.child.value = param.trim();
+    lookup();
   </script>
+  <script src="pwa.js"></script>
 </body>
 </html>
