@@ -33,28 +33,31 @@
     .btn:disabled { opacity: 0.6; cursor: wait; }
     .btn-ghost { background: #fff; color: var(--navy2); border: 1px solid #9fb3d1; }
     .btn-ghost:hover { background: #eef4fb; }
-    .btn-small { background: var(--navy2); color: #fff; border: 0; padding: 0.4rem 0.7rem; font-size: 0.88rem; white-space: nowrap; }
-    .btn-small:hover, .btn-small:focus-visible { background: var(--navy); outline: 3px solid #9ec2f0; }
-    .link-btn { background: none; border: 0; padding: 0; color: var(--blue); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+    .btn-small { background: var(--navy2); color: #fff; border: 0; padding: 0.4rem 0.7rem; font-size: 0.9rem; }
+    .link-btn {
+      background: none; border: 0; padding: 0; color: var(--blue); font: inherit;
+      font-weight: 600; cursor: pointer; text-decoration: underline;
+    }
 
     /* Search */
-    .search-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .search-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .search-row input {
-      flex: 1 1 260px; padding: 0.65rem 0.75rem; border: 1px solid #9fb3d1; border-radius: 6px;
-      font: inherit; min-height: 2.6rem;
+      flex: 1; min-width: 200px; padding: 0.6rem 0.7rem; border: 1px solid #9fb3d1;
+      border-radius: 6px; font: inherit; color: var(--navy);
     }
     .search-row input:focus { outline: 3px solid #9ec2f0; border-color: var(--blue); }
-    .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.6rem; margin-top: 0.75rem; }
+    .results { display: grid; gap: 0.5rem; margin-top: 0.6rem; }
     .result-card {
-      text-align: left; background: #f6f9fd; border: 1px solid var(--line); border-radius: 8px;
-      padding: 0.75rem; font: inherit; color: var(--navy); cursor: pointer; display: flex; flex-direction: column; gap: 0.15rem;
+      text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 8px;
+      padding: 0.6rem 0.8rem; cursor: pointer; font: inherit; color: var(--navy);
+      display: grid; gap: 0.1rem;
     }
-    .result-card:hover, .result-card:focus-visible { border-color: var(--blue); background: #eaf2fc; outline: none; }
+    .result-card:hover { background: #eef4fb; border-color: var(--blue); }
     .result-card small { color: var(--muted); }
 
-    /* Child summary */
-    .child-head { display: flex; gap: 0.9rem; align-items: center; flex-wrap: wrap; justify-content: space-between; }
-    .child-id-wrap { display: flex; gap: 0.9rem; align-items: center; }
+    /* Child header */
+    .child-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .child-id-wrap { display: flex; align-items: center; gap: 0.8rem; }
     .avatar {
       width: 52px; height: 52px; border-radius: 50%; background: var(--blue); color: #fff;
       display: grid; place-items: center; font-weight: 700; font-size: 1.3rem; flex: none;
@@ -129,6 +132,9 @@
       .savebar .btn { width: auto; }
     }
   </style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#17243b">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body data-page="role" data-role="asha">
   <a class="skip" href="#main">Skip to main content</a>
@@ -239,8 +245,8 @@
   <script type="module">
     import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import {
-      initializeFirestore, getFirestore, persistentLocalCache,
-      collection, doc, getDoc, getDocs, query, where, writeBatch
+      initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
+      collection, doc, getDoc, getDocs, getDocFromCache, getDocsFromCache, query, where, writeBatch
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -257,9 +263,34 @@
     const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     let db;
     try {
-      db = initializeFirestore(app, { localCache: persistentLocalCache() });
+      db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
     } catch (e) {
       db = getFirestore(app);
+    }
+
+    const OFFLINE_MS = 8000;
+
+    // Read from the server with a timeout; if that fails (offline), use the local cache.
+    async function readDoc(ref) {
+      try {
+        return await Promise.race([
+          getDoc(ref),
+          new Promise(function (_, rej) { setTimeout(function () { rej(new Error("timeout")); }, OFFLINE_MS); })
+        ]);
+      } catch (e) {
+        try { return await getDocFromCache(ref); } catch (_) { return null; }
+      }
+    }
+
+    async function readDocs(q) {
+      try {
+        return await Promise.race([
+          getDocs(q),
+          new Promise(function (_, rej) { setTimeout(function () { rej(new Error("timeout")); }, OFFLINE_MS); })
+        ]);
+      } catch (e) {
+        try { return await getDocsFromCache(q); } catch (_) { return { forEach: function () {} }; }
+      }
     }
 
     // Fallback schedule if schedule.js is missing
@@ -419,8 +450,8 @@
     // 1. Load child profile AND vaccinations from Firestore (by document ID)
     async function loadChildData(docId) {
       try {
-        const childSnap = await getDoc(doc(db, "children", docId));
-        if (!childSnap.exists()) return false;
+        const childSnap = await readDoc(doc(db, "children", docId));
+        if (!childSnap || !childSnap.exists()) return false;
 
         currentChild = childSnap.data();
         currentDocId = childSnap.id;
@@ -435,7 +466,7 @@
         });
 
         // Main source: vaccinations subcollection
-        const vaxSnap = await getDocs(collection(db, "children", currentDocId, "vaccinations"));
+        const vaxSnap = await readDocs(collection(db, "children", currentDocId, "vaccinations"));
         vaxSnap.forEach(function (d) {
           const data = d.data();
           if (data && data.dateGiven) childVaccines[d.id] = data.dateGiven;
@@ -502,35 +533,27 @@
           found.push({ id: id, data: data });
         }
 
-        // a) Exact username / document ID (try as typed, then lowercase)
-        var idTries = [raw];
-        if (raw.toLowerCase() !== raw) idTries.push(raw.toLowerCase());
-        for (var i = 0; i < idTries.length && !found.length; i++) {
-          if (idTries[i].indexOf("/") !== -1) continue; // not a valid doc ID
-          var snap = await getDoc(doc(db, "children", idTries[i]));
-          if (snap.exists()) add(snap.id, snap.data());
+        // Try the username (document ID) first, then the name
+        var idTries = [raw.toLowerCase()];
+        var nameTries = [titleCase(raw), raw];
+
+        for (var i = 0; i < idTries.length; i++) {
+          const snap = await readDoc(doc(db, "children", idTries[i]));
+          if (snap && snap.exists()) add(snap.id, snap.data());
         }
 
-        // b) Exact name match (case-sensitive in Firestore, so try a few variants)
-        if (!found.length) {
-          var nameTries = [raw];
-          [titleCase(raw), raw.toLowerCase(), raw.toUpperCase()].forEach(function (v) {
-            if (nameTries.indexOf(v) === -1) nameTries.push(v);
-          });
-          for (var j = 0; j < nameTries.length; j++) {
-            var nameSnap = await getDocs(query(collection(db, "children"), where("name", "==", nameTries[j])));
-            nameSnap.forEach(function (d) { add(d.id, d.data()); });
-          }
+        for (var j = 0; j < nameTries.length; j++) {
+          var nameSnap = await readDocs(query(collection(db, "children"), where("name", "==", nameTries[j])));
+          nameSnap.forEach(function (d) { add(d.id, d.data()); });
         }
 
         box.innerHTML = "";
         if (!found.length) {
-          $("search-msg").textContent = 'No child found for "' + raw + '". Check the Username or exact spelling.';
+          $("search-msg").textContent = "No child found with that Username or Name.";
           return;
         }
-
         if (found.length === 1) {
-          await openChild(found[0].id);
+          openChild(found[0].id);
           return;
         }
 
@@ -626,12 +649,25 @@
       saveBtn.textContent = "Saving...";
 
       try {
-        await batch.commit();
+        const commitP = batch.commit();
+        commitP.catch(function (e) { console.error("Background sync failed:", e); });
+
+        // Wait up to OFFLINE_MS for server confirmation; otherwise treat as saved locally.
+        const result = await Promise.race([
+          commitP.then(function () { return "synced"; }),
+          new Promise(function (r) { setTimeout(function () { r("pending"); }, OFFLINE_MS); })
+        ]);
+
         Object.keys(pending).forEach(function (code) { childVaccines[code] = pending[code]; });
         renderAll();
-        var parts = [count + " vaccine date(s) saved to Database."];
-        if (problems.length) parts.push("Not saved: " + problems.join("; ") + ".");
-        setMsg(parts.join(" "), problems.length ? "err" : "ok");
+
+        if (result === "synced") {
+          var parts = [count + " vaccine date(s) saved to Database."];
+          if (problems.length) parts.push("Not saved: " + problems.join("; ") + ".");
+          setMsg(parts.join(" "), problems.length ? "err" : "ok");
+        } else {
+          setMsg(count + " vaccine date(s) saved on this device and will sync when you are back online.", "ok");
+        }
       } catch (err) {
         console.error(err);
         var hint = err && err.code === "permission-denied"
@@ -644,5 +680,6 @@
       }
     });
   </script>
+  <script src="pwa.js"></script>
 </body>
 </html>

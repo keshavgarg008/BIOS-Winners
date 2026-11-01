@@ -57,6 +57,9 @@
 
     @media (max-width: 560px) { .summary { grid-template-columns: 1fr; } .btn { width: 100%; } }
   </style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#17243b">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body data-page="role" data-role="parent">
   <a class="skip" href="#main">Skip to main content</a>
@@ -104,7 +107,7 @@
             <h2 id="h-search">Find your child</h2>
             <form id="search-form" class="search-row" role="search">
               <label class="sr-only" for="q">Child ID</label>
-              <input id="q" autocomplete="off" placeholder="Child ID (CH-XXXX-XXXX)" required>
+              <input id="q" autocomplete="off" placeholder="Child ID (e.g. rahul_2024)" required>
               <button class="btn" id="search-btn" type="submit">Show reports</button>
             </form>
             <p class="msg err" id="search-msg" role="alert"></p>
@@ -148,12 +151,12 @@
   <script src="store.js"></script>
   <script type="module" src="app.js"></script>
 
-  <!-- FIREBASE-CONNECTED CHILD REPORTS SCRIPT -->
+  <!-- FIREBASE-CONNECTED CHILD REPORTS SCRIPT (offline-safe) -->
   <script type="module">
     import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import {
-      initializeFirestore, getFirestore, persistentLocalCache,
-      collection, doc, getDoc, getDocs
+      initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
+      collection, doc, getDoc, getDocs, getDocFromCache, getDocsFromCache
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -170,9 +173,36 @@
     const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     let db;
     try {
-      db = initializeFirestore(app, { localCache: persistentLocalCache() });
+      db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
     } catch (e) {
       db = getFirestore(app);
+    }
+
+    const OFFLINE_MS = 8000;
+
+    // Read from the server with a timeout; if that fails (offline), use the local cache.
+    // Returns null when neither the server nor the cache has the document.
+    async function readDoc(ref) {
+      try {
+        return await Promise.race([
+          getDoc(ref),
+          new Promise(function (_, rej) { setTimeout(function () { rej(new Error("timeout")); }, OFFLINE_MS); })
+        ]);
+      } catch (e) {
+        try { return await getDocFromCache(ref); } catch (_) { return null; }
+      }
+    }
+
+    // Returns a snapshot, or null if both the server and the cache failed.
+    async function readDocs(ref) {
+      try {
+        return await Promise.race([
+          getDocs(ref),
+          new Promise(function (_, rej) { setTimeout(function () { rej(new Error("timeout")); }, OFFLINE_MS); })
+        ]);
+      } catch (e) {
+        try { return await getDocsFromCache(ref); } catch (_) { return null; }
+      }
     }
 
     // Local copies (used only to fill gaps when something has not reached the cloud yet)
@@ -202,46 +232,39 @@
     // ---- Firestore helpers ----
     async function getSub(childDocId, name) {
       var out = [];
-      try {
-        var snap = await getDocs(collection(db, "children", childDocId, name));
-        snap.forEach(function (d) { var x = d.data(); x._docId = d.id; out.push(x); });
-      } catch (e) {
-        console.error("Could not load " + name + ":", e);
+      var snap = await readDocs(collection(db, "children", childDocId, name));
+      if (!snap) {
+        console.error("Could not load " + name + " (offline and not cached)");
         out.failed = true;
+        return out;
       }
+      snap.forEach(function (d) { var x = d.data(); x._docId = d.id; out.push(x); });
       return out;
     }
 
     async function fetchChild(raw) {
       var tries = [];
-      [raw.trim(), normId(raw), raw.trim().toLowerCase()].forEach(function (v) {
+      [raw.trim(), raw.trim().toLowerCase(), normId(raw)].forEach(function (v) {
         if (v && v.indexOf("/") === -1 && tries.indexOf(v) === -1) tries.push(v);
       });
 
-      var networkProblem = false;
       for (var i = 0; i < tries.length; i++) {
-        try {
-          var snap = await getDoc(doc(db, "children", tries[i]));
-          if (snap.exists()) {
-            var d = snap.data();
-            return {
-              id: snap.id, name: d.name, dob: d.dob, sex: d.sex,
-              village: d.village, guardianName: d.guardianName, source: "cloud"
-            };
-          }
-        } catch (e) {
-          console.error("Child lookup failed:", e);
-          networkProblem = true;
-          break;
+        var snap = await readDoc(doc(db, "children", tries[i]));
+        if (snap && snap.exists()) {
+          var d = snap.data();
+          return {
+            id: snap.id, name: d.name, dob: d.dob, sex: d.sex,
+            village: d.village, guardianName: d.guardianName, source: "cloud"
+          };
         }
       }
 
       // Fallback: child saved only on this device
       if (window.GSStore && GSStore.getChild) {
-        var c = GSStore.getChild(normId(raw));
+        var c = GSStore.getChild(normId(raw)) || GSStore.getChild(raw.trim().toLowerCase());
         if (c) return { id: c.id, name: c.name, dob: c.dob, sex: c.sex, village: c.village, guardianName: c.guardianName, source: "local" };
       }
-      return networkProblem ? { error: true } : null;
+      return null;
     }
 
     // ---- Collect healthcare + academic reports ----
@@ -404,13 +427,8 @@
         var c = await fetchChild(raw);
         if (token !== loadToken) return;
 
-        if (c && c.error) {
-          msg.textContent = "Could not reach the database. Check your connection and try again.";
-          $("child-panel").hidden = true;
-          return;
-        }
         if (!c) {
-          msg.textContent = "No child found for that ID. Check the ID, or ask the ASHA worker to confirm it.";
+          msg.textContent = "No child found for that ID. Check the ID, or ask the ASHA worker to confirm it. (If you are offline, the child must have been opened on this device before.)";
           $("child-panel").hidden = true;
           return;
         }
@@ -459,12 +477,13 @@
       });
     });
 
-    // Open directly from ?child=CH-XXXX-XXXX
+    // Open directly from ?child=<childId>
     var param = new URLSearchParams(window.location.search).get("child");
     if (param) {
       $("q").value = param.trim();
       openChild(param);
     }
   </script>
+  <script src="pwa.js"></script>
 </body>
 </html>

@@ -47,6 +47,9 @@
 
     @media (max-width: 560px) { .row-2 { grid-template-columns: 1fr; } .btn { width: 100%; } }
   </style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#17243b">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body data-page="role" data-role="doctor">
   <a class="skip" href="#main">Skip to main content</a>
@@ -145,7 +148,7 @@
   <script type="module">
     import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import {
-      initializeFirestore, getFirestore, persistentLocalCache,
+      initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
       collection, doc, getDoc, getDocs, writeBatch
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -163,7 +166,7 @@
     const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     let db;
     try {
-      db = initializeFirestore(app, { localCache: persistentLocalCache() });
+      db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
     } catch (e) {
       db = getFirestore(app);
     }
@@ -455,5 +458,6 @@
       renderList();
     });
   </script>
+  <script src="pwa.js"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@ import {
   onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
-  initializeFirestore, persistentLocalCache, doc, setDoc, getDoc
+  initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // 2. Initialize Firebase
@@ -23,7 +23,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 isSupported().then((ok) => { if (ok) getAnalytics(app); }).catch(() => {});
 const auth = getAuth(app);
-const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
 
 // ==========================================
 // JEEVANSETU CORE CONFIGURATION

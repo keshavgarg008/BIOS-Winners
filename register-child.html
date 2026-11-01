@@ -74,12 +74,14 @@
       background: #eef8ee; border: 1px solid #138808; border-left-width: 6px; border-radius: 10px;
       padding: 1.25rem 1.5rem; margin: 1rem 0;
     }
+    .success.pending { background: #fff6e8; border-color: #f28c1b; }
     .success h2 { margin: 0 0 0.5rem; color: #17243b; font-size: 1.15rem; }
     .id-box {
       font-size: 1.6rem; font-weight: 700; letter-spacing: 0.1em; color: #17243b;
       background: #fff; border: 1px dashed #138808; border-radius: 8px;
-      padding: 0.6rem 1rem; display: inline-block; margin: 0.5rem 0;
+      padding: 0.6rem 1rem; display: inline-block; margin: 0.5rem 0; word-break: break-all;
     }
+    .success.pending .id-box { border-color: #f28c1b; }
     .success p { margin: 0.4rem 0; }
 
     @media (max-width: 520px) {
@@ -87,6 +89,9 @@
       .actions .btn { width: 100%; }
     }
   </style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#17243b">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body data-page="role" data-role="asha">
   <a class="skip" href="#main">Skip to main content</a>
@@ -148,12 +153,11 @@
                   <input id="f-name" name="name" autocomplete="off" required aria-describedby="e-name">
                   <span class="err" id="e-name"></span>
                 </div>
-                
-                <!-- NEW CUSTOM USERNAME FIELD FOR THE CHILD -->
+
                 <div class="field">
                   <label for="f-childId">Child Username (Unique ID) <span class="req" aria-hidden="true">*</span></label>
-                  <input id="f-childId" name="childId" type="text" autocomplete="off" autocapitalize="none" required aria-describedby="e-childId">
-                  <span class="help">No spaces (e.g., rahul_2024)</span>
+                  <input id="f-childId" name="childId" type="text" autocomplete="off" autocapitalize="none" required aria-describedby="h-childId e-childId">
+                  <span class="help" id="h-childId">No spaces (e.g., rahul_2024). Offline, a few random letters are added to keep it unique.</span>
                   <span class="err" id="e-childId"></span>
                 </div>
 
@@ -200,7 +204,7 @@
 
             <section class="card" aria-labelledby="h-cert">
               <h2 id="h-cert">Birth certificate <span style="font-weight:400;color:#5b6a80;">(optional)</span></h2>
-              <p class="hint">Upload a photo or scan. JPG, PNG or PDF, up to 1 MB.</p>
+              <p class="hint">Upload a photo or scan. JPG, PNG or PDF, up to 700 KB.</p>
               <div class="upload" id="upload-zone">
                 <input type="file" id="f-cert" name="birthCert" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
                 <label for="f-cert" class="upload-btn">Choose birth certificate</label>
@@ -234,12 +238,15 @@
   <!-- Keep app.js for authentication guards -->
   <script type="module" src="app.js"></script>
 
-  <!-- FIREBASE EMBEDDED SCRIPT -->
+  <!-- FIREBASE EMBEDDED SCRIPT (offline-safe) -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { initializeFirestore, persistentLocalCache, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+      initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
+      doc, setDoc, getDoc
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // 1. Initialize Firebase
+    // 1. Initialize Firebase (reuse the app if app.js already created it)
     const firebaseConfig = {
       apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
       authDomain: "syncedd.firebaseapp.com",
@@ -250,11 +257,22 @@
       measurementId: "G-8YVJKBCGFL"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    let db;
+    try {
+      db = initializeFirestore(app, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+      });
+    } catch (e) {
+      db = getFirestore(app);
+    }
 
-    var MAX_BYTES = 1024 * 1024;
+    // A Firestore document is limited to 1 MB and a file stored as text grows by about a third,
+    // so the file limit is 700 KB to stay safely under the document limit.
+    var MAX_BYTES = 700 * 1024;
     var ALLOWED = ["image/jpeg", "image/png", "application/pdf"];
+    var CHECK_TIMEOUT_MS = 5000;
+    var SAVE_TIMEOUT_MS = 6000;
 
     var form = document.getElementById("child-form");
     var result = document.getElementById("result");
@@ -290,7 +308,7 @@
     function checkFile(file) {
       if (!file) return "";
       if (ALLOWED.indexOf(file.type) === -1) return "Use a JPG, PNG or PDF file.";
-      if (file.size > MAX_BYTES) return "File is " + fmtSize(file.size) + ". The limit is 1 MB.";
+      if (file.size > MAX_BYTES) return "File is " + fmtSize(file.size) + ". The limit is 700 KB.";
       return "";
     }
 
@@ -331,10 +349,9 @@
         if (!first) first = input;
         ok = false;
       }
-      
+
       if (!data.name) bad(form.elements.name, "Enter the child's name.");
-      
-      // Validate Custom Child Username
+
       if (!/^[a-z0-9_]{3,20}$/.test(data.childId)) {
         bad(form.elements.childId, "Username must be 3-20 characters, letters/numbers/underscores only.");
       }
@@ -349,43 +366,78 @@
       return ok;
     }
 
-    function showSuccess(id, hasCert) {
+    // mode: { queued: bool (not confirmed by the server yet), extended: bool (random letters added to the ID) }
+    function showSuccess(id, hasCert, mode) {
       result.textContent = "";
+      result.className = "success" + (mode.queued ? " pending" : "");
+
       var h = document.createElement("h2");
-      h.textContent = "Child registered successfully";
+      h.textContent = mode.queued ? "Child saved on this device" : "Child registered successfully";
       var lbl = document.createElement("p");
       lbl.textContent = "Child Username (Write this on their physical health card):";
       var box = document.createElement("div");
       box.className = "id-box";
       box.textContent = id;
+
+      result.append(h, lbl, box);
+
+      if (mode.extended) {
+        var ext = document.createElement("p");
+        ext.textContent = "No internet, so a few random letters were added to make this ID unique. Use this full ID everywhere.";
+        result.appendChild(ext);
+      }
+      if (mode.queued) {
+        var q = document.createElement("p");
+        q.textContent = "It will upload automatically when the internet returns. Keep this app open or reopen it later while online.";
+        result.appendChild(q);
+      }
+
       var note = document.createElement("p");
       note.textContent = hasCert
-        ? "Birth certificate saved with this record and synced to cloud."
+        ? (mode.queued ? "Birth certificate saved with this record." : "Birth certificate saved with this record and synced to cloud.")
         : "No birth certificate attached. You can add one later.";
-      
+      result.appendChild(note);
+
       var again = document.createElement("a");
       again.href = "register-child.html";
       again.className = "btn";
       again.style.display = "inline-block";
       again.style.marginTop = "1rem";
       again.textContent = "Register another child";
-      
-      result.append(h, lbl, box, note, again);
+      result.appendChild(again);
+
       result.hidden = false;
       result.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    // FIREBASE SAVE LOGIC WITH DUPLICATION CHECK
-    form.addEventListener("submit", function (e) {
+    function randomSuffix() {
+      var chars = "abcdefghjkmnpqrstuvwxyz23456789"; // no look-alike letters
+      var s = "";
+      for (var i = 0; i < 4; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+      return s;
+    }
+
+    function timeoutAfter(ms, value) {
+      return new Promise(function (resolve) { setTimeout(function () { resolve(value); }, ms); });
+    }
+
+    function resetButton() {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save child";
+    }
+
+    // SAVE LOGIC: duplicate check when online, safe unique ID when offline, never hangs
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
       clearErrors();
-      
+      result.hidden = true;
+
       var data = {};
       ["name", "childId", "dob", "sex", "guardianName", "guardianMobile", "village"].forEach(function (k) {
         data[k] = form.elements[k].value.trim().toLowerCase();
       });
 
-      // Maintain actual capitalization for names/village, but keep childId lowercase
+      // Keep the real capitalization for names and village; the username stays lowercase
       data.name = form.elements.name.value.trim();
       data.guardianName = form.elements.guardianName.value.trim();
       data.village = form.elements.village.value.trim();
@@ -398,56 +450,84 @@
       saveBtn.disabled = true;
       saveBtn.textContent = "Checking Database...";
 
-      const childRef = doc(db, "children", data.childId);
-
-      // 1. Check if the Username already exists in Firestore
-      getDoc(childRef).then((docSnap) => {
-        if (docSnap.exists()) {
-          // It's taken! Stop and warn the user.
-          setFieldError(form.elements.childId, "This Username is already taken! Please choose another.");
-          formErr.textContent = "Username collision detected.";
-          saveBtn.disabled = false;
-          saveBtn.textContent = "Save child";
-          form.elements.childId.focus();
-          return;
+      try {
+        // 1. Is this username already taken? Only a real answer from the server counts.
+        var verified = false;
+        if (navigator.onLine) {
+          try {
+            var snap = await Promise.race([
+              getDoc(doc(db, "children", data.childId)),
+              timeoutAfter(CHECK_TIMEOUT_MS, null)
+            ]);
+            if (snap) {
+              if (snap.exists()) {
+                setFieldError(form.elements.childId, "This Username is already taken! Please choose another.");
+                formErr.textContent = "Username collision detected.";
+                form.elements.childId.focus();
+                resetButton();
+                return;
+              }
+              verified = !snap.metadata.fromCache;
+            }
+          } catch (err) {
+            console.warn("Username check could not reach the server:", err);
+          }
         }
 
-        // 2. Not taken! Proceed to read file and save.
-        saveBtn.textContent = "Saving to Database...";
-        var certPromise = chosen ? readFile(chosen) : Promise.resolve(null);
-        
-        certPromise.then(function (cert) {
-          const currentWorker = sessionStorage.getItem("js_user") || "Unknown Worker";
+        // 2. Offline (or server unreachable): add random letters so the ID cannot clash with another child
+        var finalId = data.childId;
+        var extended = false;
+        if (!verified) {
+          finalId = data.childId + "_" + randomSuffix();
+          extended = true;
+        }
 
-          return setDoc(childRef, {
-            childId: data.childId,
-            name: data.name,
-            dob: data.dob,
-            sex: data.sex,
-            guardianName: data.guardianName,
-            guardianMobile: data.guardianMobile,
-            village: data.village,
-            birthCertDataUrl: cert ? cert.dataUrl : null,
-            registeredBy: currentWorker,
-            createdAt: new Date().toISOString()
-          }).then(() => {
-            result.hidden = true;
-            form.reset();
-            form.elements.dob.max = today;
-            chosen = null;
-            showFile(null);
-            showSuccess(data.childId, !!cert);
-          });
+        saveBtn.textContent = "Saving...";
 
-        }).catch(function (error) {
-          formErr.textContent = "Could not save. Please check your connection or file size.";
-          console.error(error);
-        }).finally(function () {
-          saveBtn.disabled = false;
-          saveBtn.textContent = "Save child";
-        });
-      });
+        // 3. Read the birth certificate (if any)
+        var cert = chosen ? await readFile(chosen) : null;
+        var currentWorker = sessionStorage.getItem("js_user") || "Unknown Worker";
+
+        var record = {
+          childId: finalId,
+          name: data.name,
+          dob: data.dob,
+          sex: data.sex,
+          guardianName: data.guardianName,
+          guardianMobile: data.guardianMobile,
+          village: data.village,
+          birthCertDataUrl: cert ? cert.dataUrl : null,
+          registeredBy: currentWorker,
+          createdAt: new Date().toISOString()
+        };
+
+        // 4. Save. Offline, setDoc waits for the server, so stop waiting after a few seconds:
+        //    the write is already stored on the device and uploads on its own later.
+        var writePromise = setDoc(doc(db, "children", finalId), record);
+        writePromise.catch(function (err) { console.error("Upload of saved child failed:", err); });
+
+        var outcome = await Promise.race([
+          writePromise.then(function () { return "synced"; }),
+          timeoutAfter(SAVE_TIMEOUT_MS, "queued")
+        ]);
+
+        form.reset();
+        form.elements.dob.max = today;
+        chosen = null;
+        showFile(null);
+        showSuccess(finalId, !!cert, { queued: outcome === "queued", extended: extended });
+      } catch (error) {
+        console.error(error);
+        if (error && error.code === "permission-denied") {
+          formErr.textContent = "Could not save: Firestore rules blocked the write (permission denied).";
+        } else {
+          formErr.textContent = "Could not save. Please check the details and try again.";
+        }
+      } finally {
+        resetButton();
+      }
     });
   </script>
+  <script src="pwa.js"></script>
 </body>
 </html>
