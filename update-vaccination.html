@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Update vaccination report – Gaon Setu</title>
+  <title>Update vaccination report – JeevanSetu</title>
   <link rel="stylesheet" href="style.css">
   <style>
     :root {
@@ -143,21 +143,17 @@
 <body data-page="role" data-role="asha">
   <a class="skip" href="#main">Skip to main content</a>
 
-  <div class="notice">
-    Prototype built for a hackathon. This is not an official government portal.
-  </div>
-
   <header class="site-header">
     <div class="wrap header-row">
-      <a class="brand" href="index.html" aria-label="Gaon Setu home">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
         <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
           <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
           <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
           <rect x="0" y="150" width="200" height="14" fill="#138808"/>
         </svg>
         <span class="brand-text">
-          <strong>Gaon Setu</strong>
-          <span>Gaon walon ke liye app</span>
+          <strong>JeevanSetu</strong>
+          <span>Child vaccination and development records</span>
         </span>
       </a>
       <div class="dash-bar">
@@ -189,8 +185,8 @@
           <section class="card" aria-labelledby="h-search">
             <h2 id="h-search">Find a child</h2>
             <form id="search-form" class="search-row" role="search">
-              <label class="sr-only" for="q">Child ID or name</label>
-              <input id="q" name="q" autocomplete="off" placeholder="Child ID (CH-XXXX-XXXX) or name" required>
+              <label class="sr-only" for="q">Child Username or Name</label>
+              <input id="q" name="q" autocomplete="off" placeholder="Child Username (e.g. rahul_2024) or Name" required>
               <button class="btn" type="submit">Search</button>
             </form>
             <p class="muted" id="search-msg" aria-live="polite"></p>
@@ -244,335 +240,368 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>Gaon Setu prototype. Sample data only.</p>
+      <p>Made with ♡ by Jeevansetu</p>
     </div>
   </footer>
 
-  <script src="app.js"></script>
-  <script src="store.js"></script>
+  <script src="settings.js"></script>
+  <script type="module" src="app.js"></script>
   <script src="schedule.js"></script>
-  <script>
-    (function () {
-      "use strict";
-      var S = GSStore;
-      var ITEMS = GSSchedule.ITEMS;
-      var MS_DAY = 86400000;
-      var childId = null;
 
-      function $(id) { return document.getElementById(id); }
+  <!-- FIREBASE EMBEDDED SCRIPT FOR VACCINATIONS -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { initializeFirestore, persistentLocalCache, collection, doc, getDoc, getDocs, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-      function esc(s) {
-        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-        });
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
+      authDomain: "syncedd.firebaseapp.com",
+      projectId: "syncedd",
+      storageBucket: "syncedd.firebasestorage.app",
+      messagingSenderId: "784392339011",
+      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
+      measurementId: "G-8YVJKBCGFL"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+
+    // Fallback schedule if schedule.js is missing
+    const ITEMS = window.GSSchedule ? window.GSSchedule.ITEMS : [
+      { code: "BCG", desc: "Bacillus Calmette-Guérin", stage: "At Birth", months: 0 },
+      { code: "OPV-0", desc: "Oral Polio Vaccine 0", stage: "At Birth", months: 0 },
+      { code: "Hep-B", desc: "Hepatitis B birth dose", stage: "At Birth", months: 0 },
+      { code: "OPV-1", desc: "Oral Polio Vaccine 1", stage: "6 Weeks", weeks: 6 },
+      { code: "Penta-1", desc: "Pentavalent 1", stage: "6 Weeks", weeks: 6 },
+      { code: "Rota-1", desc: "Rotavirus Vaccine 1", stage: "6 Weeks", weeks: 6 },
+      { code: "OPV-2", desc: "Oral Polio Vaccine 2", stage: "10 Weeks", weeks: 10 },
+      { code: "Penta-2", desc: "Pentavalent 2", stage: "10 Weeks", weeks: 10 },
+      { code: "Rota-2", desc: "Rotavirus Vaccine 2", stage: "10 Weeks", weeks: 10 },
+      { code: "OPV-3", desc: "Oral Polio Vaccine 3", stage: "14 Weeks", weeks: 14 },
+      { code: "Penta-3", desc: "Pentavalent 3", stage: "14 Weeks", weeks: 14 },
+      { code: "Rota-3", desc: "Rotavirus Vaccine 3", stage: "14 Weeks", weeks: 14 },
+      { code: "MR-1", desc: "Measles & Rubella 1", stage: "9 Months", months: 9 }
+    ];
+
+    let currentChild = null;
+    let childVaccines = {}; 
+
+    const MS_DAY = 86400000;
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+    function todayIso() { return iso(new Date()); }
+    function parse(s) { return new Date(s + "T00:00:00"); }
+    function fmt(s) { return parse(s).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+    function daysUntil(s) { return Math.round((parse(s) - parse(todayIso())) / MS_DAY); }
+
+    function dueOf(dob, item) {
+      var d = parse(dob);
+      if (item.weeks != null) d.setDate(d.getDate() + item.weeks * 7);
+      else d.setMonth(d.getMonth() + item.months);
+      return iso(d);
+    }
+
+    function ageText(dob) {
+      var b = parse(dob), t = parse(todayIso());
+      var days = Math.floor((t - b) / MS_DAY);
+      var months = (t.getFullYear() - b.getFullYear()) * 12 + (t.getMonth() - b.getMonth());
+      if (t.getDate() < b.getDate()) months--;
+      if (months < 1) return days + (days === 1 ? " day" : " days");
+      if (months < 24) return months + " months";
+      var y = Math.floor(months / 12), m = months % 12;
+      return y + " years" + (m ? " " + m + " months" : "");
+    }
+
+    function dueText(due) {
+      var n = daysUntil(due);
+      if (n < 0) return "Overdue by " + (-n) + (n === -1 ? " day" : " days");
+      if (n === 0) return "Due today";
+      return "Due in " + n + (n === 1 ? " day" : " days");
+    }
+
+    const PILL = {
+      given: ["pill-ok", "Given"],
+      overdue: ["pill-over", "Overdue"],
+      soon: ["pill-soon", "Due soon"],
+      upcoming: ["pill-up", "Upcoming"],
+      conflict: ["pill-conflict", "Choose date"]
+    };
+    function pill(kind) { return '<span class="pill ' + PILL[kind][0] + '">' + PILL[kind][1] + "</span>"; }
+
+    function statusOf(item) {
+      if (childVaccines[item.code]) {
+        return { kind: "given", date: childVaccines[item.code] };
+      }
+      var due = dueOf(currentChild.dob, item), n = daysUntil(due);
+      if (n < 0) return { kind: "overdue", due: due };
+      if (n <= 30) return { kind: "soon", due: due };
+      return { kind: "upcoming", due: due };
+    }
+
+    function setMsg(text, kind) {
+      var m = $("save-msg");
+      m.textContent = text;
+      m.className = kind === "err" ? "err" : kind === "ok" ? "ok-text" : "";
+    }
+
+    function renderNext(next, nextSt) {
+      var box = $("next-card");
+      if (!next) {
+        box.className = "card next done";
+        box.innerHTML = '<p class="eyebrow">Next vaccine</p><h2>All scheduled vaccines are recorded</h2><p class="muted">Nothing is due right now.</p>';
+        return;
+      }
+      var detail = "Due on " + fmt(nextSt.due) + " (" + dueText(nextSt.due) + ")";
+      box.className = "card next" + (nextSt.kind === "overdue" ? " over" : "");
+      
+      // FIXED SYNTAX ISSUE HERE
+      box.innerHTML = '<p class="eyebrow">Next vaccine</p><div class="next-row"><div><h2>' + esc(next.code) + "</h2>" +
+        '<p class="muted">' + esc(next.desc) + " · " + esc(next.stage) + "</p></div>" +
+        pill(nextSt.kind) + '</div><p class="next-due">' + esc(detail) + "</p>";
+    }
+
+    function rowHtml(item, st) {
+      var v = esc(item.code), label = item.code, dueLine, cls = "vx", tickAttr, right;
+
+      if (st.kind === "given") {
+        cls += " given";
+        dueLine = '<span class="due">Recorded</span>';
+        tickAttr = " checked disabled";
+        right = pill("given") + '<input type="date" data-vax="' + v + '" value="' + esc(st.date) + '" min="' + esc(currentChild.dob) + '" max="' + todayIso() + '">';
+      } else {
+        tickAttr = "";
+        dueLine = '<span class="due">Due ' + esc(fmt(st.due)) + " · " + esc(dueText(st.due)) + "</span>";
+        right = pill(st.kind) + '<input type="date" data-vax="' + v + '" value="" disabled min="' + esc(currentChild.dob) + '" max="' + todayIso() + '">';
       }
 
-      function pad(n) { return String(n).padStart(2, "0"); }
-      function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
-      function todayIso() { return iso(new Date()); }
-      function parse(s) { return new Date(s + "T00:00:00"); }
-      function fmt(s) { return parse(s).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
-      function daysUntil(s) { return Math.round((parse(s) - parse(todayIso())) / MS_DAY); }
+      var tick = '<input type="checkbox" data-tick="' + v + '" ' + tickAttr + '>';
+      return '<div class="' + cls + '"><div>' + tick + '</div><div class="name"><strong>' + esc(label) + "</strong><small>" + esc(item.desc) + "</small>" + dueLine + "</div>" +
+        '<div class="right">' + right + "</div></div>";
+    }
 
-      function dueOf(dob, item) {
-        var d = parse(dob);
-        if (item.weeks != null) d.setDate(d.getDate() + item.weeks * 7);
-        else d.setMonth(d.getMonth() + item.months);
-        return iso(d);
-      }
+    function renderStages() {
+      var groups = [], map = {};
+      ITEMS.forEach(function (it) {
+        if (!map[it.stage]) { map[it.stage] = []; groups.push({ stage: it.stage, items: map[it.stage] }); }
+        map[it.stage].push(it);
+      });
 
-      function ageText(dob) {
-        var b = parse(dob), t = parse(todayIso());
-        var days = Math.floor((t - b) / MS_DAY);
-        var months = (t.getFullYear() - b.getFullYear()) * 12 + (t.getMonth() - b.getMonth());
-        if (t.getDate() < b.getDate()) months--;
-        if (months < 1) return days + (days === 1 ? " day" : " days");
-        if (months < 24) return months + " months";
-        var y = Math.floor(months / 12), m = months % 12;
-        return y + " years" + (m ? " " + m + " months" : "");
-      }
-
-      function dueText(due) {
-        var n = daysUntil(due);
-        if (n < 0) return "Overdue by " + (-n) + (n === -1 ? " day" : " days");
-        if (n === 0) return "Due today";
-        return "Due in " + n + (n === 1 ? " day" : " days");
-      }
-
-      var PILL = {
-        given: ["pill-ok", "Given"],
-        overdue: ["pill-over", "Overdue"],
-        soon: ["pill-soon", "Due soon"],
-        upcoming: ["pill-up", "Upcoming"],
-        conflict: ["pill-conflict", "Choose date"]
-      };
-      function pill(kind) {
-        return '<span class="pill ' + PILL[kind][0] + '">' + PILL[kind][1] + "</span>";
-      }
-
-      // Status of one vaccine for this child: given, conflict, overdue, soon or upcoming
-      function statusOf(child, item) {
-        var st = S.vaccineStatus(childId, item.code);
-        if (st.state === "ok") return { kind: "given", date: st.date };
-        if (st.state === "conflict") return { kind: "conflict", heads: st.heads };
-        var due = dueOf(child.dob, item), n = daysUntil(due);
-        if (n < 0) return { kind: "overdue", due: due };
-        if (n <= 30) return { kind: "soon", due: due };
-        return { kind: "upcoming", due: due };
-      }
-
-      function setMsg(text, kind) {
-        var m = $("save-msg");
-        m.textContent = text;
-        m.className = kind === "err" ? "err" : kind === "ok" ? "ok-text" : "";
-      }
-
-      function renderNext(child, item, st) {
-        var box = $("next-card");
-        if (!item) {
-          box.className = "card next done";
-          box.innerHTML =
-            '<p class="eyebrow">Next vaccine</p>' +
-            "<h2>All scheduled vaccines are recorded</h2>" +
-            '<p class="muted">Nothing is due right now.</p>';
-          return;
-        }
-        var detail = st.kind === "conflict"
-          ? "Two different dates are recorded for this vaccine. Choose the correct one in the list below."
-          : "Due on " + fmt(st.due) + " (" + dueText(st.due) + ")";
-        box.className = "card next" + (st.kind === "overdue" ? " over" : "");
-        box.innerHTML =
-          '<p class="eyebrow">Next vaccine</p>' +
-          '<div class="next-row"><div><h2>' + esc(item.code) + "</h2>" +
-          '<p class="muted">' + esc(item.desc) + " · " + esc(item.stage) + "</p></div>" +
-          pill(st.kind) + "</div>" +
-          '<p class="next-due">' + esc(detail) + "</p>";
-      }
-
-      function rowHtml(child, item, st) {
-        var v = esc(item.code);
-        var label = item.code;
-        var dueLine, cls = "vx", tickAttr, right;
-
-        if (st.kind === "given") {
-          cls += " given";
-          dueLine = '<span class="due">Recorded</span>';
-          tickAttr = " checked disabled";
-          right = pill("given") +
-            '<input type="date" data-vax="' + v + '" aria-label="Date given for ' + v + '" value="' + esc(st.date) +
-            '" min="' + esc(child.dob) + '" max="' + todayIso() + '">';
-        } else if (st.kind === "conflict") {
-          cls += " conflict";
-          dueLine = '<span class="due">Two different dates recorded</span>';
-          tickAttr = " checked disabled";
-          var opts = st.heads.map(function (h) {
-            return '<div class="conflict-opt"><div><strong>' + esc(fmt(h.date)) + "</strong>" +
-              "<small>Recorded by " + esc(h.deviceId) + " on " + esc(fmt(h.ts.slice(0, 10))) + "</small></div>" +
-              '<button class="btn-small" type="button" data-act="keep" data-vax="' + v +
-              '" data-date="' + esc(h.date) + '">Keep this date</button></div>';
-          }).join("");
-          right = pill("conflict") + '<div style="width:100%;display:flex;flex-direction:column;gap:0.4rem;">' + opts + "</div>";
-        } else {
-          tickAttr = "";
-          dueLine = '<span class="due">Due ' + esc(fmt(st.due)) + " · " + esc(dueText(st.due)) + "</span>";
-          right = pill(st.kind) +
-            '<input type="date" data-vax="' + v + '" aria-label="Date given for ' + v + '" value=""' +
-            ' disabled min="' + esc(child.dob) + '" max="' + todayIso() + '">';
-        }
-
-        var tick = st.kind === "conflict" ? "" :
-          '<input type="checkbox" data-tick="' + v + '" aria-label="Mark ' + v + ' as given"' + tickAttr + ">";
-        if (st.kind === "conflict") {
-          tick = '<input type="checkbox" checked disabled aria-label="' + v + ' has conflicting dates" style="visibility:hidden">';
-        }
-
-        return '<div class="' + cls + '">' +
-          "<div>" + tick + "</div>" +
-          '<div class="name"><strong>' + esc(label) + "</strong><small>" + esc(item.desc) + "</small>" + dueLine + "</div>" +
-          '<div class="right">' + right + "</div>" +
-          "</div>";
-      }
-
-      function renderStages(child) {
-        var groups = [], map = {};
-        ITEMS.forEach(function (it) {
-          if (!map[it.stage]) {
-            map[it.stage] = [];
-            groups.push({ stage: it.stage, items: map[it.stage] });
-          }
-          map[it.stage].push(it);
-        });
-
-        $("stages").innerHTML = groups.map(function (g) {
-          var given = 0;
-          var rows = g.items.map(function (it) {
-            var st = statusOf(child, it);
-            if (st.kind === "given") given++;
-            return rowHtml(child, it, st);
-          }).join("");
-          return '<section class="card"><div class="stage-head"><h3>' + esc(g.stage) + "</h3>" +
-            '<span class="muted">' + given + " of " + g.items.length + " given</span></div>" +
-            '<div class="vx-list">' + rows + "</div></section>";
-        }).join("");
-      }
-
-      function renderAll() {
-        var child = S.getChild(childId);
-        if (!child) return;
-        var given = 0, conflicts = 0, next = null, nextSt = null;
-
-        ITEMS.forEach(function (it) {
-          var st = statusOf(child, it);
+      $("stages").innerHTML = groups.map(function (g) {
+        var given = 0;
+        var rows = g.items.map(function (it) {
+          var st = statusOf(it);
           if (st.kind === "given") given++;
-          if (st.kind === "conflict") conflicts++;
-          if (!next && st.kind !== "given") { next = it; nextSt = st; }
+          return rowHtml(it, st);
+        }).join("");
+        return '<section class="card"><div class="stage-head"><h3>' + esc(g.stage) + "</h3>" +
+          '<span class="muted">' + given + " of " + g.items.length + " given</span></div>" +
+          '<div class="vx-list">' + rows + "</div></section>";
+      }).join("");
+    }
+
+    function renderAll() {
+      var given = 0, conflicts = 0, next = null, nextSt = null;
+
+      ITEMS.forEach(function (it) {
+        var st = statusOf(it);
+        if (st.kind === "given") given++;
+        if (!next && st.kind !== "given") { next = it; nextSt = st; }
+      });
+
+      var total = ITEMS.length, pct = Math.round((given / total) * 100);
+      $("progress-text").textContent = given + " of " + total + " vaccines given (" + pct + "%)";
+      $("progress-bar").style.width = pct + "%";
+      $("progress-track").setAttribute("aria-valuenow", String(pct));
+      
+      renderNext(next, nextSt);
+      renderStages();
+    }
+
+    function fact(label, value) { return '<div class="fact"><span>' + esc(label) + "</span><strong>" + esc(value) + "</strong></div>"; }
+
+    // 1. Fetch child profile AND their vaccinations from Firestore
+    async function loadChildData(childIdStr) {
+      try {
+        const childRef = doc(db, "children", childIdStr);
+        const childSnap = await getDoc(childRef);
+
+        if (!childSnap.exists()) return null;
+        
+        currentChild = childSnap.data();
+        
+        // Load vaccines collection for this child
+        childVaccines = {}; 
+        const vaxRef = collection(db, `children/${childIdStr}/vaccinations`);
+        const vaxSnap = await getDocs(vaxRef);
+        vaxSnap.forEach((doc) => {
+          childVaccines[doc.id] = doc.data().dateGiven;
         });
 
-        var total = ITEMS.length, pct = Math.round((given / total) * 100);
-        $("progress-text").textContent = given + " of " + total + " vaccines given (" + pct + "%)";
-        $("progress-bar").style.width = pct + "%";
-        $("progress-track").setAttribute("aria-valuenow", String(pct));
-        $("conflict-note").hidden = conflicts === 0;
+        return currentChild;
+      } catch (e) {
+        console.error("Error loading child:", e);
+        return null;
+      }
+    }
 
-        renderNext(child, next, nextSt);
-        renderStages(child);
+    function displayChildUI() {
+      $("avatar").textContent = currentChild.name.charAt(0).toUpperCase();
+      $("child-name").textContent = currentChild.name;
+      $("child-id").textContent = "Username: " + currentChild.childId;
+      $("facts").innerHTML = fact("Age", ageText(currentChild.dob)) + fact("Date of birth", fmt(currentChild.dob)) + fact("Sex", currentChild.sex) + fact("Guardian", currentChild.guardianName) + fact("Mobile", currentChild.guardianMobile) + fact("Village", currentChild.village);
+      
+      $("cert-line").innerHTML = currentChild.birthCertDataUrl 
+        ? '<button type="button" class="link-btn" id="view-cert-btn">View birth certificate</button>' 
+        : '<span class="muted">No birth certificate uploaded for this child.</span>';
+
+      if(currentChild.birthCertDataUrl) {
+         setTimeout(() => {
+           $("view-cert-btn").addEventListener("click", function() {
+             fetch(currentChild.birthCertDataUrl).then(r => r.blob()).then(blob => {
+                window.open(URL.createObjectURL(blob), "_blank", "noopener");
+             });
+           });
+         }, 100);
       }
 
-      function fact(label, value) {
-        return '<div class="fact"><span>' + esc(label) + "</span><strong>" + esc(value) + "</strong></div>";
-      }
+      $("child-panel").hidden = false;
+      $("results").innerHTML = "";
+      $("search-msg").textContent = "";
+      setMsg("");
+      renderAll();
+      $("child-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
 
-      function openChild(id) {
-        var c = S.getChild(id);
-        if (!c) return;
-        childId = id;
-        $("avatar").textContent = c.name.charAt(0).toUpperCase();
-        $("child-name").textContent = c.name;
-        $("child-id").textContent = "Child ID " + c.id;
-        $("facts").innerHTML =
-          fact("Age", ageText(c.dob)) +
-          fact("Date of birth", fmt(c.dob)) +
-          fact("Sex", c.sex) +
-          fact("Guardian", c.guardianName) +
-          fact("Mobile", c.guardianMobile) +
-          fact("Village", c.village);
-        $("cert-line").innerHTML = c.birthCert
-          ? '<button type="button" class="link-btn" data-act="cert">View birth certificate</button> ' +
-            '<span class="muted">(' + esc(c.birthCert.name) + ")</span>"
-          : '<span class="muted">No birth certificate uploaded for this child.</span>';
-        $("child-panel").hidden = false;
-        $("results").innerHTML = "";
-        $("search-msg").textContent = "";
-        setMsg("");
-        renderAll();
-        $("child-panel").scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+    // 2. Search Firestore by Name or ID
+    $("search-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var q = $("q").value.trim().toLowerCase();
+      var box = $("results");
+      box.innerHTML = "Searching database...";
+      $("search-msg").textContent = "";
 
-      // Search
-      $("search-form").addEventListener("submit", function (e) {
-        e.preventDefault();
-        var q = $("q").value.trim();
-        var found = S.findChildren(q);
-        var box = $("results");
+      try {
+        let found = [];
+        
+        // Search by exact childId
+        const idSnap = await getDoc(doc(db, "children", q));
+        if (idSnap.exists()) {
+           found.push(idSnap.data());
+        } else {
+           // Basic Name search
+           const nameQ = query(collection(db, "children"), where("name", "==", q));
+           const nameSnap = await getDocs(nameQ);
+           nameSnap.forEach(doc => found.push(doc.data()));
+        }
+
         box.innerHTML = "";
         if (!found.length) {
-          $("search-msg").textContent = 'No child found on this device for "' + q +
-            '". Check the ID or spelling, or register the child first.';
+          $("search-msg").textContent = 'No child found for "' + q + '". Check the Username or exact spelling.';
           return;
         }
+
         if (found.length === 1) {
-          openChild(found[0].id);
+          await loadChildData(found[0].childId);
+          displayChildUI();
           return;
         }
+
         $("search-msg").textContent = found.length + " children found. Choose one:";
         found.forEach(function (c) {
           var btn = document.createElement("button");
           btn.type = "button";
           btn.className = "result-card";
-          var name = document.createElement("strong");
-          name.textContent = c.name;
-          var idLine = document.createElement("small");
-          idLine.textContent = c.id;
-          var place = document.createElement("small");
-          place.textContent = c.village + " · born " + fmt(c.dob);
-          btn.append(name, idLine, place);
-          btn.addEventListener("click", function () { openChild(c.id); });
+          btn.innerHTML = `<strong>${esc(c.name)}</strong><small>${esc(c.childId)}</small><small>${esc(c.village)} · born ${fmt(c.dob)}</small>`;
+          btn.addEventListener("click", async function () { 
+            await loadChildData(c.childId);
+            displayChildUI();
+          });
           box.appendChild(btn);
         });
+      } catch(err) {
+         box.innerHTML = "Network error. Make sure you are signed in.";
+         console.error(err);
+      }
+    });
+
+    $("change-child").addEventListener("click", function () {
+      currentChild = null;
+      childVaccines = {};
+      $("child-panel").hidden = true;
+      $("q").focus();
+      $("q").select();
+    });
+
+    // Tick a box
+    $("stages").addEventListener("change", function (e) {
+      var t = e.target;
+      if (!t.matches("input[type='checkbox'][data-tick]")) return;
+      var row = t.closest(".vx");
+      var dateIn = row.querySelector("input[type='date']");
+      dateIn.disabled = !t.checked;
+      if (t.checked && !dateIn.value) dateIn.value = todayIso();
+      if (!t.checked) dateIn.value = "";
+      row.classList.toggle("ticked", t.checked);
+      setMsg("");
+    });
+
+    // 3. Save vaccinations to Firestore
+    $("save-btn").addEventListener("click", async function () {
+      if (!currentChild) return;
+      var today = todayIso(), problems = [];
+      const currentWorker = sessionStorage.getItem("js_user") || "Unknown Worker";
+
+      $("save-btn").disabled = true;
+      $("save-btn").textContent = "Saving...";
+
+      let savePromises = [];
+      let updatedCount = 0;
+
+      var inputs = $("stages").querySelectorAll("input[type='date'][data-vax]");
+      inputs.forEach(function (inp) {
+        var vaxCode = inp.getAttribute("data-vax");
+        var val = inp.value;
+
+        // Skip if untouched or disabled
+        if (inp.disabled || !val || childVaccines[vaxCode] === val) return;
+
+        if (val < currentChild.dob) {
+          problems.push(vaxCode + " is before the date of birth");
+        } else if (val > today) {
+          problems.push(vaxCode + " is in the future");
+        } else {
+          // Valid! Create a promise to save it to Firestore
+          const vaxDocRef = doc(db, `children/${currentChild.childId}/vaccinations`, vaxCode);
+          const saveTask = setDoc(vaxDocRef, {
+            dateGiven: val,
+            recordedBy: currentWorker,
+            timestamp: new Date().toISOString()
+          }).then(() => {
+            childVaccines[vaxCode] = val; // Update local state
+            updatedCount++;
+          });
+          savePromises.push(saveTask);
+        }
       });
 
-      $("change-child").addEventListener("click", function () {
-        childId = null;
-        $("child-panel").hidden = true;
-        $("q").focus();
-        $("q").select();
-      });
-
-      // Tick a box: fill today's date if empty; untick: clear the date (nothing is saved until Save)
-      $("stages").addEventListener("change", function (e) {
-        var t = e.target;
-        if (!t.matches("input[type='checkbox'][data-tick]")) return;
-        var row = t.closest(".vx");
-        var dateIn = row.querySelector("input[type='date']");
-        dateIn.disabled = !t.checked;
-        if (t.checked && !dateIn.value) dateIn.value = todayIso();
-        if (!t.checked) dateIn.value = "";
-        row.classList.toggle("ticked", t.checked);
-        setMsg("");
-      });
-
-      // Conflict: worker keeps one of the dates
-      $("stages").addEventListener("click", function (e) {
-        var b = e.target.closest("[data-act='keep']");
-        if (!b) return;
-        S.setVaccine(childId, b.getAttribute("data-vax"), b.getAttribute("data-date"));
-        renderAll();
-        setMsg("Date chosen. The other entry stays in the history.", "ok");
-      });
-
-      // Birth certificate: convert the stored data URL to a blob so it opens in a new tab
-      $("cert-line").addEventListener("click", function (e) {
-        var b = e.target.closest("[data-act='cert']");
-        if (!b) return;
-        var c = S.getChild(childId);
-        if (!c || !c.birthCert) return;
-        fetch(c.birthCert.dataUrl)
-          .then(function (r) { return r.blob(); })
-          .then(function (blob) {
-            window.open(URL.createObjectURL(blob), "_blank", "noopener");
-          })
-          .catch(function () { setMsg("Could not open the birth certificate.", "err"); });
-      });
-
-      // Save ticked or changed dates. Nothing is ever deleted; each change is a new entry.
-      $("save-btn").addEventListener("click", function () {
-        var child = S.getChild(childId);
-        if (!child) return;
-        var today = todayIso(), changed = 0, problems = [];
-
-        Array.prototype.forEach.call(
-          $("stages").querySelectorAll("input[type='date'][data-vax]"),
-          function (inp) {
-            var v = inp.getAttribute("data-vax"), val = inp.value;
-            if (inp.disabled || !val) return;
-            if (val < child.dob) problems.push(v + " is before the date of birth");
-            else if (val > today) problems.push(v + " is in the future");
-            else if (S.setVaccine(childId, v, val)) changed++;
-          }
-        );
-
+      try {
+        await Promise.all(savePromises);
         renderAll();
         var parts = [];
-        if (changed) parts.push(changed + " vaccine date(s) saved on this device.");
+        if (updatedCount) parts.push(updatedCount + " vaccine date(s) saved to Database.");
         if (problems.length) parts.push("Not saved: " + problems.join("; ") + ".");
-        if (!changed && !problems.length) parts.push("No changes to save.");
+        if (!updatedCount && !problems.length) parts.push("No changes to save.");
         setMsg(parts.join(" "), problems.length ? "err" : "ok");
-      });
-
-      // Open a child directly from ?child=CH-XXXX-XXXX
-      var param = new URLSearchParams(window.location.search).get("child");
-      if (param && S.getChild(param)) openChild(param);
-    })();
+      } catch (err) {
+        setMsg("Failed to save some vaccines. Check your connection.", "err");
+        console.error(err);
+      } finally {
+        $("save-btn").disabled = false;
+        $("save-btn").textContent = "Save changes";
+      }
+    });
   </script>
 </body>
 </html>

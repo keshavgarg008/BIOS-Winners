@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Register a child – Gaon Setu</title>
+  <title>Register a child – JeevanSetu</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Self-contained styles so this page looks right even without records.css */
+    /* Self-contained styles */
     .reg-wrap { max-width: 760px; margin: 0 auto; }
     .back-link { display: inline-block; margin: 1rem 0 0.5rem; color: #3569b8; font-weight: 600; }
     .reg-head h1 { margin: 0.25rem 0 0.25rem; color: #17243b; font-size: 1.8rem; }
@@ -91,21 +91,17 @@
 <body data-page="role" data-role="asha">
   <a class="skip" href="#main">Skip to main content</a>
 
-  <div class="notice">
-    Prototype built for a hackathon. This is not an official government portal.
-  </div>
-
   <header class="site-header">
     <div class="wrap header-row">
-      <a class="brand" href="index.html" aria-label="Gaon Setu home">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
         <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
           <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
           <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
           <rect x="0" y="150" width="200" height="14" fill="#138808"/>
         </svg>
         <span class="brand-text">
-          <strong>Gaon Setu</strong>
-          <span>Gaon walon ke liye app</span>
+          <strong>JeevanSetu</strong>
+          <span>Child vaccination and development records</span>
         </span>
       </a>
       <div class="dash-bar">
@@ -148,10 +144,19 @@
               <p class="hint">Name and date of birth must match the birth certificate.</p>
               <div class="fields">
                 <div class="field">
-                  <label for="f-name">Child name <span class="req" aria-hidden="true">*</span></label>
+                  <label for="f-name">Child's Full Name <span class="req" aria-hidden="true">*</span></label>
                   <input id="f-name" name="name" autocomplete="off" required aria-describedby="e-name">
                   <span class="err" id="e-name"></span>
                 </div>
+                
+                <!-- NEW CUSTOM USERNAME FIELD FOR THE CHILD -->
+                <div class="field">
+                  <label for="f-childId">Child Username (Unique ID) <span class="req" aria-hidden="true">*</span></label>
+                  <input id="f-childId" name="childId" type="text" autocomplete="off" autocapitalize="none" required aria-describedby="e-childId">
+                  <span class="help">No spaces (e.g., rahul_2024)</span>
+                  <span class="err" id="e-childId"></span>
+                </div>
+
                 <div class="field">
                   <label for="f-dob">Date of birth <span class="req" aria-hidden="true">*</span></label>
                   <input id="f-dob" type="date" name="dob" required aria-describedby="e-dob">
@@ -221,197 +226,228 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>Gaon Setu prototype. Sample data only.</p>
+      <p>Made with ♡ by Jeevansetu</p>
     </div>
   </footer>
 
-  <script src="app.js"></script>
-  <script src="store.js"></script>
-  <script>
-    (function () {
-      var MAX_BYTES = 1024 * 1024;
-      var ALLOWED = ["image/jpeg", "image/png", "application/pdf"];
+  <script src="settings.js"></script>
+  <!-- Keep app.js for authentication guards -->
+  <script type="module" src="app.js"></script>
 
-      var form = document.getElementById("child-form");
-      var result = document.getElementById("result");
-      var formErr = document.getElementById("form-error");
-      var saveBtn = document.getElementById("save-btn");
-      var fileInput = document.getElementById("f-cert");
-      var zone = document.getElementById("upload-zone");
-      var fileInfo = document.getElementById("file-info");
-      var fileName = document.getElementById("file-name");
-      var certErr = document.getElementById("e-cert");
-      var chosen = null; // the File the user picked
+  <!-- FIREBASE EMBEDDED SCRIPT -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { initializeFirestore, persistentLocalCache, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-      // Today's local date as YYYY-MM-DD, so future birth dates are rejected
-      var d = new Date();
-      var today = d.getFullYear() + "-" +
-        String(d.getMonth() + 1).padStart(2, "0") + "-" +
-        String(d.getDate()).padStart(2, "0");
-      form.elements.dob.max = today;
+    // 1. Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
+      authDomain: "syncedd.firebaseapp.com",
+      projectId: "syncedd",
+      storageBucket: "syncedd.firebasestorage.app",
+      messagingSenderId: "784392339011",
+      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
+      measurementId: "G-8YVJKBCGFL"
+    };
 
-      function fmtSize(bytes) {
-        return bytes < 1024 * 1024 ? Math.round(bytes / 1024) + " KB" : (bytes / 1048576).toFixed(1) + " MB";
+    const app = initializeApp(firebaseConfig);
+    const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+
+    var MAX_BYTES = 1024 * 1024;
+    var ALLOWED = ["image/jpeg", "image/png", "application/pdf"];
+
+    var form = document.getElementById("child-form");
+    var result = document.getElementById("result");
+    var formErr = document.getElementById("form-error");
+    var saveBtn = document.getElementById("save-btn");
+    var fileInput = document.getElementById("f-cert");
+    var zone = document.getElementById("upload-zone");
+    var fileInfo = document.getElementById("file-info");
+    var fileName = document.getElementById("file-name");
+    var certErr = document.getElementById("e-cert");
+    var chosen = null;
+
+    // Prevent future birth dates
+    var d = new Date();
+    var today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    form.elements.dob.max = today;
+
+    function fmtSize(bytes) { return bytes < 1024 * 1024 ? Math.round(bytes / 1024) + " KB" : (bytes / 1048576).toFixed(1) + " MB"; }
+
+    function setFieldError(input, msg) {
+      var err = document.getElementById("e-" + input.id.replace("f-", ""));
+      if (err) err.textContent = msg || "";
+      input.setAttribute("aria-invalid", msg ? "true" : "false");
+    }
+
+    function clearErrors() {
+      formErr.textContent = "";
+      Array.prototype.forEach.call(form.elements, function (el) {
+        if (el.id && el.id.indexOf("f-") === 0) setFieldError(el, "");
+      });
+    }
+
+    function checkFile(file) {
+      if (!file) return "";
+      if (ALLOWED.indexOf(file.type) === -1) return "Use a JPG, PNG or PDF file.";
+      if (file.size > MAX_BYTES) return "File is " + fmtSize(file.size) + ". The limit is 1 MB.";
+      return "";
+    }
+
+    function showFile(file) {
+      chosen = file;
+      certErr.textContent = "";
+      if (!file) { fileInfo.hidden = true; fileInput.value = ""; return; }
+      var msg = checkFile(file);
+      if (msg) { certErr.textContent = msg; chosen = null; fileInfo.hidden = true; fileInput.value = ""; return; }
+      fileName.textContent = file.name + " (" + fmtSize(file.size) + ")";
+      fileInfo.hidden = false;
+    }
+
+    fileInput.addEventListener("change", function () { showFile(fileInput.files[0] || null); });
+    document.getElementById("file-remove").addEventListener("click", function () { showFile(null); });
+
+    // Drag and drop
+    ["dragenter", "dragover"].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add("drag"); }); });
+    ["dragleave", "drop"].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove("drag"); }); });
+    zone.addEventListener("drop", function (e) { var f = e.dataTransfer.files[0]; if (f) showFile(f); });
+
+    var mobile = form.elements.guardianMobile;
+    mobile.addEventListener("input", function () { mobile.value = mobile.value.replace(/\D/g, "").slice(0, 10); });
+
+    function readFile(file) {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function () { resolve({ name: file.name, type: file.type, size: file.size, dataUrl: reader.result }); };
+        reader.onerror = function () { reject(new Error("read")); };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function validate(data) {
+      var ok = true, first = null;
+      function bad(input, msg) {
+        setFieldError(input, msg);
+        if (!first) first = input;
+        ok = false;
+      }
+      
+      if (!data.name) bad(form.elements.name, "Enter the child's name.");
+      
+      // Validate Custom Child Username
+      if (!/^[a-z0-9_]{3,20}$/.test(data.childId)) {
+        bad(form.elements.childId, "Username must be 3-20 characters, letters/numbers/underscores only.");
       }
 
-      function setFieldError(input, msg) {
-        var err = document.getElementById("e-" + input.id.replace("f-", ""));
-        if (err) err.textContent = msg || "";
-        input.setAttribute("aria-invalid", msg ? "true" : "false");
+      if (!data.dob) bad(form.elements.dob, "Enter the date of birth.");
+      else if (data.dob > today) bad(form.elements.dob, "Date of birth cannot be in the future.");
+      if (!data.sex) bad(form.elements.sex, "Select the sex.");
+      if (!data.guardianName) bad(form.elements.guardianName, "Enter the guardian's name.");
+      if (!/^\d{10}$/.test(data.guardianMobile)) bad(mobile, "Enter a 10-digit mobile number.");
+      if (!data.village) bad(form.elements.village, "Enter the village.");
+      if (!ok) first.focus();
+      return ok;
+    }
+
+    function showSuccess(id, hasCert) {
+      result.textContent = "";
+      var h = document.createElement("h2");
+      h.textContent = "Child registered successfully";
+      var lbl = document.createElement("p");
+      lbl.textContent = "Child Username (Write this on their physical health card):";
+      var box = document.createElement("div");
+      box.className = "id-box";
+      box.textContent = id;
+      var note = document.createElement("p");
+      note.textContent = hasCert
+        ? "Birth certificate saved with this record and synced to cloud."
+        : "No birth certificate attached. You can add one later.";
+      
+      var again = document.createElement("a");
+      again.href = "register-child.html";
+      again.className = "btn";
+      again.style.display = "inline-block";
+      again.style.marginTop = "1rem";
+      again.textContent = "Register another child";
+      
+      result.append(h, lbl, box, note, again);
+      result.hidden = false;
+      result.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // FIREBASE SAVE LOGIC WITH DUPLICATION CHECK
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      clearErrors();
+      
+      var data = {};
+      ["name", "childId", "dob", "sex", "guardianName", "guardianMobile", "village"].forEach(function (k) {
+        data[k] = form.elements[k].value.trim().toLowerCase();
+      });
+
+      // Maintain actual capitalization for names/village, but keep childId lowercase
+      data.name = form.elements.name.value.trim();
+      data.guardianName = form.elements.guardianName.value.trim();
+      data.village = form.elements.village.value.trim();
+
+      if (!validate(data)) {
+        formErr.textContent = "Please fix the highlighted fields.";
+        return;
       }
 
-      function clearErrors() {
-        formErr.textContent = "";
-        Array.prototype.forEach.call(form.elements, function (el) {
-          if (el.id && el.id.indexOf("f-") === 0) setFieldError(el, "");
-        });
-      }
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Checking Database...";
 
-      function checkFile(file) {
-        if (!file) return "";
-        if (ALLOWED.indexOf(file.type) === -1) return "Use a JPG, PNG or PDF file.";
-        if (file.size > MAX_BYTES) return "File is " + fmtSize(file.size) + ". The limit is 1 MB.";
-        return "";
-      }
+      const childRef = doc(db, "children", data.childId);
 
-      function showFile(file) {
-        chosen = file;
-        certErr.textContent = "";
-        if (!file) {
-          fileInfo.hidden = true;
-          fileInput.value = "";
+      // 1. Check if the Username already exists in Firestore
+      getDoc(childRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          // It's taken! Stop and warn the user.
+          setFieldError(form.elements.childId, "This Username is already taken! Please choose another.");
+          formErr.textContent = "Username collision detected.";
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save child";
+          form.elements.childId.focus();
           return;
         }
-        var msg = checkFile(file);
-        if (msg) {
-          certErr.textContent = msg;
-          chosen = null;
-          fileInfo.hidden = true;
-          fileInput.value = "";
-          return;
-        }
-        fileName.textContent = file.name + " (" + fmtSize(file.size) + ")";
-        fileInfo.hidden = false;
-      }
 
-      fileInput.addEventListener("change", function () {
-        showFile(fileInput.files[0] || null);
-      });
-      document.getElementById("file-remove").addEventListener("click", function () {
-        showFile(null);
-      });
-
-      // Drag and drop
-      ["dragenter", "dragover"].forEach(function (ev) {
-        zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add("drag"); });
-      });
-      ["dragleave", "drop"].forEach(function (ev) {
-        zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove("drag"); });
-      });
-      zone.addEventListener("drop", function (e) {
-        var f = e.dataTransfer.files[0];
-        if (f) showFile(f);
-      });
-
-      // Live feedback on mobile number: only digits
-      var mobile = form.elements.guardianMobile;
-      mobile.addEventListener("input", function () {
-        mobile.value = mobile.value.replace(/\D/g, "").slice(0, 10);
-      });
-
-      function readFile(file) {
-        return new Promise(function (resolve, reject) {
-          var reader = new FileReader();
-          reader.onload = function () {
-            resolve({ name: file.name, type: file.type, size: file.size, dataUrl: reader.result });
-          };
-          reader.onerror = function () { reject(new Error("read")); };
-          reader.readAsDataURL(file);
-        });
-      }
-
-      function validate(data) {
-        var ok = true, first = null;
-        function bad(input, msg) {
-          setFieldError(input, msg);
-          if (!first) first = input;
-          ok = false;
-        }
-        if (!data.name) bad(form.elements.name, "Enter the child's name.");
-        if (!data.dob) bad(form.elements.dob, "Enter the date of birth.");
-        else if (data.dob > today) bad(form.elements.dob, "Date of birth cannot be in the future.");
-        if (!data.sex) bad(form.elements.sex, "Select the sex.");
-        if (!data.guardianName) bad(form.elements.guardianName, "Enter the guardian's name.");
-        if (!/^\d{10}$/.test(data.guardianMobile)) bad(mobile, "Enter a 10-digit mobile number.");
-        if (!data.village) bad(form.elements.village, "Enter the village.");
-        if (!ok) first.focus();
-        return ok;
-      }
-
-      function showSuccess(id, hasCert) {
-        result.textContent = "";
-        var h = document.createElement("h2");
-        h.textContent = "Child registered on this device";
-        var lbl = document.createElement("p");
-        lbl.textContent = "Child ID (keep this safe):";
-        var box = document.createElement("div");
-        box.className = "id-box";
-        box.textContent = id;
-        var note = document.createElement("p");
-        note.textContent = hasCert
-          ? "Birth certificate saved with this record."
-          : "No birth certificate attached. You can add one later.";
-        var link = document.createElement("a");
-        link.href = "update-vaccination.html";
-        link.className = "btn";
-        link.style.display = "inline-block";
-        link.style.marginTop = "0.5rem";
-        link.textContent = "Update vaccination report";
-        var again = document.createElement("a");
-        again.href = "register-child.html";
-        again.className = "btn btn-ghost";
-        again.style.display = "inline-block";
-        again.style.marginTop = "0.5rem";
-        again.style.marginLeft = "0.5rem";
-        again.textContent = "Register another child";
-        result.append(h, lbl, box, note, link, again);
-        result.hidden = false;
-        result.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        clearErrors();
-        var data = {};
-        ["name", "dob", "sex", "guardianName", "guardianMobile", "village"].forEach(function (k) {
-          data[k] = form.elements[k].value.trim();
-        });
-        if (!validate(data)) {
-          formErr.textContent = "Please fix the highlighted fields.";
-          return;
-        }
-
-        saveBtn.disabled = true;
-        saveBtn.textContent = "Saving...";
-
+        // 2. Not taken! Proceed to read file and save.
+        saveBtn.textContent = "Saving to Database...";
         var certPromise = chosen ? readFile(chosen) : Promise.resolve(null);
+        
         certPromise.then(function (cert) {
-          data.birthCert = cert;
-          var id = GSStore.addChild(data);
-          result.hidden = true;
-          form.reset();
-          form.elements.dob.max = today;
-          chosen = null;
-          showFile(null);
-          showSuccess(id, !!cert);
-        }).catch(function () {
-          formErr.textContent = "Could not save. The file may be too large for this browser's storage. Try a smaller file or save without it.";
-        }).then(function () {
+          const currentWorker = sessionStorage.getItem("js_user") || "Unknown Worker";
+
+          return setDoc(childRef, {
+            childId: data.childId,
+            name: data.name,
+            dob: data.dob,
+            sex: data.sex,
+            guardianName: data.guardianName,
+            guardianMobile: data.guardianMobile,
+            village: data.village,
+            birthCertDataUrl: cert ? cert.dataUrl : null,
+            registeredBy: currentWorker,
+            createdAt: new Date().toISOString()
+          }).then(() => {
+            result.hidden = true;
+            form.reset();
+            form.elements.dob.max = today;
+            chosen = null;
+            showFile(null);
+            showSuccess(data.childId, !!cert);
+          });
+
+        }).catch(function (error) {
+          formErr.textContent = "Could not save. Please check your connection or file size.";
+          console.error(error);
+        }).finally(function () {
           saveBtn.disabled = false;
           saveBtn.textContent = "Save child";
         });
       });
-    })();
+    });
   </script>
 </body>
 </html>
