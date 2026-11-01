@@ -5,6 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>School page – JeevanSetu</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .dash-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .dash-card {
+      display: block;
+      background: #ffffff;
+      border: 1px solid #c9d6ea;
+      border-top: 6px solid #3569b8;
+      border-radius: 8px;
+      padding: 1.25rem;
+      color: #17243b;
+      text-decoration: none;
+    }
+    .dash-card:hover, .dash-card:focus-visible {
+      border-color: #3569b8;
+      box-shadow: 0 2px 8px rgba(23, 36, 59, 0.15);
+    }
+    .dash-card h2 { margin: 0 0 0.5rem; font-size: 1.2rem; }
+    .dash-card p { margin: 0.25rem 0; }
+    .dash-card .sub { color: #4a5a72; font-size: 0.95rem; }
+  </style>
 </head>
 <body data-page="role" data-role="teacher">
   <a class="skip" href="#main">Skip to main content</a>
@@ -42,11 +67,25 @@
       <div id="content" hidden>
         <div class="page-head">
           <h1>School page</h1>
+          <p lang="hi">स्कूल पेज</p>
+          <p lang="pa">ਸਕੂਲ ਪੰਨਾ</p>
           <p id="welcome"></p>
         </div>
-        <div class="empty">
-          <p>School health checks and attendance will appear here.</p>
-        </div>
+
+        <nav class="dash-cards" aria-label="School options">
+          <a class="dash-card" href="register-child.html">
+            <h2>Register a child</h2>
+            <p>Add a new child with guardian and village details.</p>
+            <p class="sub" lang="hi">बच्चे का पंजीकरण करें</p>
+            <p class="sub" lang="pa">ਬੱਚੇ ਦੀ ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਕਰੋ</p>
+          </a>
+          <a class="dash-card" href="teacher-performance.html">
+            <h2>Add class performance</h2>
+            <p>Record class, attendance, grade, achievements and a note.</p>
+            <p class="sub" lang="hi">कक्षा प्रदर्शन जोड़ें</p>
+            <p class="sub" lang="pa">ਕਲਾਸ ਪ੍ਰਦਰਸ਼ਨ ਜੋੜੋ</p>
+          </a>
+        </nav>
       </div>
     </div>
   </main>

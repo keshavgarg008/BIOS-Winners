@@ -150,9 +150,9 @@
     (function () {
       "use strict";
       var S = GSStore;
-      var KEY_NOTES = "gs_notes";          // doctor notes (doctor-notes.html)
-      var KEY_VAX = "gs_vax";              // ASHA vaccination records (store.js)
-      var KEY_TEACHER = "gs_teacher_reports"; // teacher reports (teacher portal, to be built)
+      var KEY_NOTES = "gs_notes";             // doctor notes (doctor-notes.html)
+      var KEY_VAX = "gs_vax";                 // ASHA vaccination records (store.js)
+      var KEY_TEACHER = "gs_teacher_reports"; // teacher entries (teacher-performance.html)
       var childId = null, filter = "all", reports = [];
 
       function $(id) { return document.getElementById(id); }
@@ -166,7 +166,7 @@
       function fact(label, value) {
         var f = document.createElement("div"); f.className = "fact";
         var s = document.createElement("span"); s.textContent = label;
-        var st = document.createElement("strong"); st.textContent = value;
+        var st = document.createElement("strong"); st.textContent = value || "-";
         f.append(s, st);
         return f;
       }
@@ -182,6 +182,7 @@
       // Collect healthcare and academic reports into one list
       function collect(id) {
         var list = [];
+
         currentVax(id).forEach(function (e) {
           list.push({
             category: "health", kind: "Vaccination", date: e.date,
@@ -189,18 +190,34 @@
             body: "Recorded on " + fmt((e.ts || "").slice(0, 10))
           });
         });
+
         read(KEY_NOTES).filter(function (n) { return n.childId === id; }).forEach(function (n) {
           list.push({
             category: "health", kind: "Treatment note", date: n.date,
             title: "Doctor's treatment note", by: "Doctor", body: n.note
           });
         });
+
         read(KEY_TEACHER).filter(function (r) { return r.childId === id; }).forEach(function (r) {
+          var lines = [];
+          if (r.className || r.grade || r.attendance !== undefined) {
+            lines.push("Class: " + (r.className || "-") +
+              " · Grade: " + (r.grade || "-") +
+              " · Attendance: " + (r.attendance !== undefined && r.attendance !== "" ? r.attendance + "%" : "-"));
+          }
+          if (r.competition) lines.push("Achievement: " + r.competition + " – " + (r.position || "-"));
+          if (r.note) lines.push(r.note);
+
           list.push({
-            category: "academic", kind: r.subject || "Teacher report", date: r.date,
-            title: r.subject || "Teacher report", by: r.teacher ? "Teacher: " + r.teacher : "Teacher", body: r.note
+            category: "academic",
+            kind: "Class performance",
+            date: r.date,
+            title: (r.className ? r.className : "Class") + " performance",
+            by: "Teacher: " + (r.teacher || "-"),
+            body: lines.join("\n")
           });
         });
+
         list.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
         return list;
       }
