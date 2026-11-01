@@ -1,1 +1,6 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"syncedd","configurations":{"web":"1:784392339011:web:36a0ef8994e21d2dda9ef6"}}}}}}
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/*.exe"]
+  }
+}

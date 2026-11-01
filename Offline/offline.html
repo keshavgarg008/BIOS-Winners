@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17243b">
+  <title>Offline – JeevanSetu</title>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #17243b; background: #f6f9fd; display: grid; place-items: center; min-height: 100vh; padding: 1.5rem; box-sizing: border-box; }
+    .box { max-width: 460px; background: #fff; border: 1px solid #c9d6ea; border-radius: 12px; padding: 1.6rem; text-align: center; box-shadow: 0 1px 3px rgba(23,36,59,0.08); }
+    h1 { margin: 0.5rem 0; font-size: 1.4rem; }
+    p { margin: 0.5rem 0; color: #5b6a80; }
+    a, button { display: inline-block; margin-top: 0.8rem; background: #3569b8; color: #fff; border: 0; border-radius: 6px; padding: 0.65rem 1.2rem; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
+    a:focus-visible, button:focus-visible { outline: 3px solid #9ec2f0; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <svg width="64" height="64" viewBox="0 0 200 200" aria-hidden="true">
+      <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
+      <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
+      <rect x="0" y="150" width="200" height="14" fill="#138808"/>
+    </svg>
+    <h1>You are offline</h1>
+    <p lang="hi">आप ऑफ़लाइन हैं</p>
+    <p lang="pa">ਤੁਸੀਂ ਆਫ਼ਲਾਈਨ ਹੋ</p>
+    <p>This page has not been saved on this device yet. Pages you have already opened will still work. Anything you save is kept on this device and uploads when the internet returns.</p>
+    <a href="index.html">Go to home</a>
+    <button type="button" onclick="location.reload()">Try again</button>
+  </div>
+</body>
+</html>

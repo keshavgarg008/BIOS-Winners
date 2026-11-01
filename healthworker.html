@@ -3,53 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ASHA worker dashboard – JeevanSetu</title>
+  <title>ASHA worker – JeevanSetu</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    /* Dashboard cards and status strip (can move into style.css later) */
-    .dash-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1rem;
-      margin: 1.5rem 0;
-    }
-    .dash-card {
-      display: block;
-      background: #ffffff;
-      border: 1px solid #c9d6ea;
-      border-top: 6px solid #3569b8;
-      border-radius: 8px;
-      padding: 1.25rem;
-      color: #17243b;
-      text-decoration: none;
-    }
-    .dash-card:hover, .dash-card:focus-visible {
-      border-color: #3569b8;
-      box-shadow: 0 2px 8px rgba(23, 36, 59, 0.15);
-    }
-    .dash-card h2 { margin: 0 0 0.5rem; font-size: 1.2rem; }
-    .dash-card p { margin: 0.25rem 0; }
-    .dash-card .sub { color: #4a5a72; font-size: 0.95rem; }
-    .sync-strip {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      align-items: center;
-      background: #243b5a;
-      color: #ffffff;
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-    }
-    .sync-strip .dot {
-      display: inline-block;
-      width: 0.7rem;
-      height: 0.7rem;
-      border-radius: 50%;
-      background: #7fd17f;
-      margin-right: 0.4rem;
-    }
-    .sync-strip.is-offline .dot { background: #f28c1b; }
-  </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1B2A6B">
 </head>
 <body data-page="role" data-role="asha">
   <a class="skip" href="#main">Skip to main content</a>
@@ -67,50 +24,47 @@
           <span>Child vaccination and development records</span>
         </span>
       </a>
-      <div class="dash-bar">
-        <span class="badge" id="role-badge">ASHA worker</span>
-        <span class="who" id="who"></span>
-        <button type="button" class="signout" id="signout">Sign out</button>
-      </div>
+      <nav aria-label="Account">
+        <span id="role-badge" class="badge" hidden></span>
+        <span id="who"></span>
+        <button type="button" id="signout" hidden>Sign out</button>
+      </nav>
     </div>
   </header>
 
-  <main id="main">
+  <main id="main" class="section">
     <div class="wrap">
-      <!-- Guard container shown if user is not signed in or not an ASHA worker -->
-      <div class="empty guard" id="guard" hidden>
+
+      <!-- Shown when the user is not signed in or is on the wrong page -->
+      <section class="card" id="guard" hidden>
         <p id="guard-text"></p>
-        <p><a class="primary-link" id="guard-link" href="index.html">Go to sign in</a></p>
-      </div>
+        <a id="guard-link" class="primary-link" href="index.html"></a>
+      </section>
 
-      <!-- Main dashboard content -->
-      <div id="content" hidden>
-        <div class="page-head">
-          <h1>ASHA worker dashboard</h1>
-          <p id="welcome"></p>
+      <!-- Shown to signed-in ASHA workers only -->
+      <section id="content" hidden>
+        <h1 id="welcome"></h1>
+
+        <div id="sync-strip" class="sync-strip" role="status" aria-live="polite">
+          <span id="net-status">Checking connection...</span>
+          <span>Waiting to sync: <strong id="pending-count">0</strong></span>
         </div>
 
-        <!-- Offline/online status and pending-sync count (display only) -->
-        <div class="sync-strip" id="sync-strip" role="status" aria-live="polite">
-          <span><span class="dot"></span><span id="net-status">Online</span></span>
-          <span>Records waiting to sync: <strong id="pending-count">0</strong></span>
-        </div>
-
-        <nav class="dash-cards" aria-label="Dashboard options">
-          <a class="dash-card" href="register-child.html">
+        <div class="grid-4">
+          <article class="info">
             <h2>Register a child</h2>
-            <p>Add a new child with guardian and village details.</p>
-            <p class="sub" lang="hi">बच्चे का पंजीकरण करें</p>
-            <p class="sub" lang="pa">ਬੱਚੇ ਦੀ ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਕਰੋ</p>
-          </a>
-          <a class="dash-card" href="update-vaccination.html">
-            <h2>Update vaccination report</h2>
-            <p>Find a child by ID or name and record the vaccines given.</p>
-            <p class="sub" lang="hi">टीकाकरण रिपोर्ट अपडेट करें</p>
-            <p class="sub" lang="pa">ਟੀਕਾਕਰਨ ਰਿਪੋਰਟ ਅੱਪਡੇਟ ਕਰੋ</p>
-          </a>
-        </nav>
-      </div>
+            <p>Add a new child and the parent's details. Works offline.</p>
+            <a class="primary-link" href="register-child.html">Register a child</a>
+          </article>
+
+          <article class="info">
+            <h2>Update vaccination</h2>
+            <p>Record a dose or a health check for a child. Works offline.</p>
+            <a class="primary-link" href="update-vaccination.html">Update vaccination</a>
+          </article>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -121,37 +75,6 @@
   </footer>
 
   <script src="settings.js"></script>
-<<<<<<< HEAD
-  <!-- Module for Firebase compatibility -->
   <script type="module" src="app.js"></script>
-  <script>
-    /* Offline/online status and pending-sync count (display only) */
-    (function () {
-      var strip = document.getElementById("sync-strip");
-      var netText = document.getElementById("net-status");
-      var pending = document.getElementById("pending-count");
-
-      function showNet() {
-        var online = navigator.onLine;
-        netText.textContent = online ? "Online" : "Offline. Changes are saved on this device.";
-        strip.classList.toggle("is-offline", !online);
-      }
-
-      function showPending() {
-        // Count is read from localStorage key "gs_pending" (written by store.js)
-        var n = parseInt(localStorage.getItem("gs_pending") || "0", 10);
-        pending.textContent = isNaN(n) ? "0" : String(n);
-      }
-
-      window.addEventListener("online", showNet);
-      window.addEventListener("offline", showNet);
-      showNet();
-      showPending();
-    })();
-  </script>
-=======
-  <!-- Updated to module for Firebase compatibility -->
-  <script type="module" src="app.js"></script>
->>>>>>> 8930fc9862f2d202837d4f6eacc3b1d1093f947f
 </body>
 </html>

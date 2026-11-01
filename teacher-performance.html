@@ -39,10 +39,12 @@
 
     .btn { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 0.7rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer; }
     .btn:hover, .btn:focus-visible { background: var(--navy2); outline: 3px solid #9ec2f0; }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
     .form-msg { font-weight: 600; min-height: 1.2em; margin: 0.75rem 0 0; color: var(--red); }
     .form-msg.ok { color: var(--green); }
 
     .entry { border-left: 4px solid var(--blue); background: #f6f9fd; border-radius: 6px; padding: 0.7rem 0.9rem; margin-top: 0.6rem; }
+    .entry.pending { border-left-color: #f28c1b; }
     .entry .top { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; font-weight: 700; }
     .entry .meta { font-size: 0.85rem; color: var(--muted); margin-top: 0.15rem; }
     .entry ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
@@ -185,7 +187,7 @@
                 <span class="counter" id="note-count">0 / 500</span>
               </div>
               <p class="form-msg" id="form-msg" role="status" aria-live="polite"></p>
-              <p><button class="btn" type="submit">Save performance</button></p>
+              <p><button class="btn" id="save-btn" type="submit">Save performance</button></p>
             </section>
           </form>
 
@@ -208,178 +210,347 @@
   <script src="settings.js"></script>
   <script src="store.js"></script>
   <script type="module" src="app.js"></script>
-  <script>
-    (function () {
-      "use strict";
-      var KEY = "gs_teacher_reports"; // read by parent-reports.html
 
-      function $(id) { return document.getElementById(id); }
-      function pad(n) { return String(n).padStart(2, "0"); }
-      function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
-      function fmt(s) { return new Date(s + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
-      function normId(v) { return String(v || "").trim().toUpperCase(); }
-      function read() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
+  <!-- FIREBASE-CONNECTED CLASS PERFORMANCE SCRIPT -->
+  <script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+      initializeFirestore, getFirestore, persistentLocalCache,
+      collection, doc, getDoc, getDocs, writeBatch
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-      var today = iso(new Date());
-      var f = {
-        child: $("f-child"), date: $("f-date"), cls: $("f-class"), att: $("f-att"),
-        grade: $("f-grade"), comp: $("f-comp"), pos: $("f-pos"), note: $("f-note")
-      };
-      var info = $("child-info"), msg = $("form-msg");
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
+      authDomain: "syncedd.firebaseapp.com",
+      projectId: "syncedd",
+      storageBucket: "syncedd.firebasestorage.app",
+      messagingSenderId: "784392339011",
+      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
+      measurementId: "G-8YVJKBCGFL"
+    };
 
-      f.date.max = today;
-      f.date.value = today;
+    // Reuse the app/Firestore instance if another script already created one
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    let db;
+    try {
+      db = initializeFirestore(app, { localCache: persistentLocalCache() });
+    } catch (e) {
+      db = getFirestore(app);
+    }
 
-      function setErr(input, key, text) {
-        $("e-" + key).textContent = text || "";
-        input.setAttribute("aria-invalid", text ? "true" : "false");
-      }
+    const KEY = "gs_teacher_reports"; // local copy, also read by parent-reports.html
+    const SAVE_TIMEOUT_MS = 8000;
 
-      function lookup() {
-        var id = normId(f.child.value);
-        if (!id) {
-          info.textContent = "";
-          info.className = "child-info";
-          return null;
-        }
-        var c = GSStore.getChild(id);
-        if (!c) {
-          info.textContent = "No child with this ID on this device.";
-          info.className = "child-info bad";
-          return null;
-        }
-        info.textContent = c.name + " · born " + fmt(c.dob) + " · " + c.village;
-        info.className = "child-info ok";
-        f.date.min = c.dob;
-        return c;
-      }
+    function $(id) { return document.getElementById(id); }
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+    function fmt(s) { return new Date(s + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+    function normId(v) { return String(v || "").trim().toUpperCase(); }
+    function readLocal() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
+    function writeLocal(list) { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) { console.error(e); } }
+    function workerName() {
+      return sessionStorage.getItem("js_user") ||
+        (window.GSStore && GSStore.deviceId ? GSStore.deviceId() : "Unknown Teacher");
+    }
 
-      function renderEntries() {
-        var box = $("entries"), hint = $("list-hint");
-        box.textContent = "";
-        var id = normId(f.child.value);
-        if (!id || !GSStore.getChild(id)) {
-          hint.textContent = "Enter a Child ID above to see its entries.";
-          return;
-        }
-        var list = read().filter(function (r) { return r.childId === id; });
-        list.sort(function (a, b) {
-          if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-          return a.createdAt < b.createdAt ? 1 : -1;
-        });
-        if (!list.length) {
-          hint.textContent = "No class performance entries yet for this child.";
-          return;
-        }
-        hint.textContent = list.length + (list.length === 1 ? " entry" : " entries") + ", newest first.";
-        list.forEach(function (r) {
-          var item = document.createElement("div");
-          item.className = "entry";
+    var today = iso(new Date());
+    var f = {
+      child: $("f-child"), date: $("f-date"), cls: $("f-class"), att: $("f-att"),
+      grade: $("f-grade"), comp: $("f-comp"), pos: $("f-pos"), note: $("f-note")
+    };
+    var info = $("child-info"), msg = $("form-msg"), saveBtn = $("save-btn");
 
-          var top = document.createElement("div");
-          top.className = "top";
-          var left = document.createElement("span");
-          left.textContent = r.className + " · Grade " + r.grade;
-          var right = document.createElement("span");
-          right.textContent = "Attendance " + r.attendance + "%";
-          top.append(left, right);
+    f.date.max = today;
+    f.date.value = today;
 
-          var meta = document.createElement("div");
-          meta.className = "meta";
-          meta.textContent = fmt(r.date) + " · " + r.teacher;
+    var currentChild = null;   // { id (Firestore doc ID), name, dob, village }
+    var lookupToken = 0;       // ignores out-of-date async lookups
+    var lookupTimer = null;
 
-          item.append(top, meta);
+    function setErr(input, key, text) {
+      $("e-" + key).textContent = text || "";
+      input.setAttribute("aria-invalid", text ? "true" : "false");
+    }
 
-          if (r.competition) {
-            var ul = document.createElement("ul");
-            var li = document.createElement("li");
-            li.textContent = "Achievement: " + r.competition + " – " + r.position;
-            ul.appendChild(li);
-            item.appendChild(ul);
-          }
-          if (r.note) {
-            var p = document.createElement("p");
-            p.textContent = r.note;
-            item.appendChild(p);
-          }
-          box.appendChild(item);
-        });
-      }
-
-      f.child.addEventListener("input", function () { lookup(); renderEntries(); });
-      f.note.addEventListener("input", function () { $("note-count").textContent = f.note.value.length + " / 500"; });
-
-      var param = new URLSearchParams(window.location.search).get("child");
-      if (param) f.child.value = normId(param);
-      lookup();
-      renderEntries();
-
-      $("perf-form").addEventListener("submit", function (e) {
-        e.preventDefault();
-        msg.textContent = "";
-        msg.className = "form-msg";
-
-        var c = lookup();
-        var date = f.date.value, cls = f.cls.value, grade = f.grade.value;
-        var attRaw = f.att.value.trim(), att = parseFloat(attRaw);
-        var comp = f.comp.value.trim(), pos = f.pos.value.trim(), note = f.note.value.trim();
-        var first = null;
-
-        function bad(input, key, text) {
-          setErr(input, key, text);
-          if (!first) first = input;
-        }
-        ["child", "date", "class", "att", "grade", "comp", "pos"].forEach(function (k) {
-          var map = { child: f.child, date: f.date, "class": f.cls, att: f.att, grade: f.grade, comp: f.comp, pos: f.pos };
-          setErr(map[k], k, "");
-        });
-
-        if (!c) bad(f.child, "child", "Enter a valid Child ID.");
-        if (!date) bad(f.date, "date", "Choose the date.");
-        else if (date > today) bad(f.date, "date", "The date cannot be in the future.");
-        else if (c && date < c.dob) bad(f.date, "date", "The date is before the child's date of birth.");
-        if (!cls) bad(f.cls, "class", "Select the class.");
-        if (attRaw === "" || isNaN(att)) bad(f.att, "att", "Enter the attendance percentage.");
-        else if (att < 0 || att > 100) bad(f.att, "att", "Attendance must be between 0 and 100.");
-        if (!grade) bad(f.grade, "grade", "Select the grade.");
-        if (comp && !pos) bad(f.pos, "pos", "Enter the position for this competition.");
-        if (pos && !comp) bad(f.comp, "comp", "Enter the competition name.");
-
-        if (first) {
-          msg.textContent = "Please fix the highlighted fields.";
-          first.focus();
-          return;
-        }
-
-        var all = read();
-        all.push({
-          id: "T-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-          childId: c.id,
-          date: date,
-          className: cls,
-          attendance: att,
-          grade: grade,
-          competition: comp,
-          position: pos,
-          note: note,
-          teacher: GSStore.deviceId(),
-          createdAt: new Date().toISOString(),
-          synced: false
-        });
-        localStorage.setItem(KEY, JSON.stringify(all));
-
-        // Clear everything except the child and date so the teacher can enter the next child quickly
-        f.att.value = "";
-        f.grade.value = "";
-        f.comp.value = "";
-        f.pos.value = "";
-        f.note.value = "";
-        $("note-count").textContent = "0 / 500";
-        msg.textContent = "Performance saved on this device for " + c.name + ".";
-        msg.className = "form-msg ok";
-        renderEntries();
+    // ---- Child lookup: Firestore first, then this device's local store ----
+    async function fetchChild(raw) {
+      var tries = [];
+      [raw.trim(), normId(raw), raw.trim().toLowerCase()].forEach(function (v) {
+        if (v && v.indexOf("/") === -1 && tries.indexOf(v) === -1) tries.push(v);
       });
-    })();
+
+      var networkProblem = false;
+      for (var i = 0; i < tries.length; i++) {
+        try {
+          var snap = await getDoc(doc(db, "children", tries[i]));
+          if (snap.exists()) {
+            var d = snap.data();
+            return { id: snap.id, name: d.name || "", dob: d.dob || "", village: d.village || "", source: "cloud" };
+          }
+        } catch (e) {
+          console.error("Child lookup failed:", e);
+          networkProblem = true;
+          break;
+        }
+      }
+
+      // Fallback: child registered only on this device
+      if (window.GSStore && GSStore.getChild) {
+        var local = GSStore.getChild(normId(raw));
+        if (local) return { id: local.id, name: local.name, dob: local.dob, village: local.village, source: "local" };
+      }
+      return networkProblem ? { error: true } : null;
+    }
+
+    async function lookup() {
+      var raw = f.child.value.trim();
+      var token = ++lookupToken;
+
+      if (!raw) {
+        currentChild = null;
+        info.textContent = "";
+        info.className = "child-info";
+        return null;
+      }
+
+      info.textContent = "Checking...";
+      info.className = "child-info";
+
+      var c = await fetchChild(raw);
+      if (token !== lookupToken) return currentChild; // a newer lookup is running
+
+      if (c && c.error) {
+        currentChild = null;
+        info.textContent = "Could not reach the database. Check your connection.";
+        info.className = "child-info bad";
+        return null;
+      }
+      if (!c) {
+        currentChild = null;
+        info.textContent = "No child found with this ID.";
+        info.className = "child-info bad";
+        return null;
+      }
+
+      currentChild = c;
+      info.textContent = c.name + (c.dob ? " · born " + fmt(c.dob) : "") + (c.village ? " · " + c.village : "");
+      info.className = "child-info ok";
+      if (c.dob) f.date.min = c.dob;
+      return c;
+    }
+
+    // ---- Entries list: Firestore + any not-yet-synced local entries ----
+    async function renderEntries() {
+      var box = $("entries"), hint = $("list-hint");
+      var token = lookupToken;
+      box.textContent = "";
+
+      if (!currentChild) {
+        hint.textContent = "Enter a Child ID above to see its entries.";
+        return;
+      }
+      var child = currentChild;
+      hint.textContent = "Loading entries...";
+
+      var byId = {};
+      try {
+        var snap = await getDocs(collection(db, "children", child.id, "performance"));
+        snap.forEach(function (d) { var r = d.data(); r.id = d.id; r.synced = true; byId[d.id] = r; });
+      } catch (e) {
+        console.error("Could not load entries:", e);
+      }
+
+      // Merge in local entries for this child (includes ones waiting to sync)
+      readLocal().forEach(function (r) {
+        if (r.childId === child.id && !byId[r.id]) byId[r.id] = r;
+      });
+
+      if (child !== currentChild) return; // user switched child meanwhile
+      box.textContent = "";
+
+      var list = Object.keys(byId).map(function (k) { return byId[k]; });
+      list.sort(function (a, b) {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return (a.createdAt || "") < (b.createdAt || "") ? 1 : -1;
+      });
+
+      if (!list.length) {
+        hint.textContent = "No class performance entries yet for this child.";
+        return;
+      }
+      hint.textContent = list.length + (list.length === 1 ? " entry" : " entries") + ", newest first.";
+
+      list.forEach(function (r) {
+        var item = document.createElement("div");
+        item.className = "entry" + (r.synced === false ? " pending" : "");
+
+        var top = document.createElement("div");
+        top.className = "top";
+        var left = document.createElement("span");
+        left.textContent = r.className + " · Grade " + r.grade;
+        var right = document.createElement("span");
+        right.textContent = "Attendance " + r.attendance + "%";
+        top.append(left, right);
+
+        var meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = fmt(r.date) + " · " + (r.teacher || "") + (r.synced === false ? " · waiting to sync" : "");
+
+        item.append(top, meta);
+
+        if (r.competition) {
+          var ul = document.createElement("ul");
+          var li = document.createElement("li");
+          li.textContent = "Achievement: " + r.competition + " – " + r.position;
+          ul.appendChild(li);
+          item.appendChild(ul);
+        }
+        if (r.note) {
+          var p = document.createElement("p");
+          p.textContent = r.note;
+          item.appendChild(p);
+        }
+        box.appendChild(item);
+      });
+    }
+
+    async function lookupAndRender() {
+      await lookup();
+      await renderEntries();
+    }
+
+    f.child.addEventListener("input", function () {
+      clearTimeout(lookupTimer);
+      lookupTimer = setTimeout(lookupAndRender, 350);
+    });
+    f.note.addEventListener("input", function () { $("note-count").textContent = f.note.value.length + " / 500"; });
+
+    var param = new URLSearchParams(window.location.search).get("child");
+    if (param) f.child.value = normId(param);
+    lookupAndRender();
+
+    // ---- Save ----
+    $("perf-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      msg.textContent = "";
+      msg.className = "form-msg";
+
+      clearTimeout(lookupTimer);
+      var c = await lookup();
+
+      var date = f.date.value, cls = f.cls.value, grade = f.grade.value;
+      var attRaw = f.att.value.trim(), att = parseFloat(attRaw);
+      var comp = f.comp.value.trim(), pos = f.pos.value.trim(), note = f.note.value.trim();
+      var first = null;
+
+      function bad(input, key, text) {
+        setErr(input, key, text);
+        if (!first) first = input;
+      }
+      var map = { child: f.child, date: f.date, "class": f.cls, att: f.att, grade: f.grade, comp: f.comp, pos: f.pos };
+      Object.keys(map).forEach(function (k) { setErr(map[k], k, ""); });
+
+      if (!c) bad(f.child, "child", "Enter a valid Child ID.");
+      if (!date) bad(f.date, "date", "Choose the date.");
+      else if (date > today) bad(f.date, "date", "The date cannot be in the future.");
+      else if (c && c.dob && date < c.dob) bad(f.date, "date", "The date is before the child's date of birth.");
+      if (!cls) bad(f.cls, "class", "Select the class.");
+      if (attRaw === "" || isNaN(att)) bad(f.att, "att", "Enter the attendance percentage.");
+      else if (att < 0 || att > 100) bad(f.att, "att", "Attendance must be between 0 and 100.");
+      if (!grade) bad(f.grade, "grade", "Select the grade.");
+      if (comp && !pos) bad(f.pos, "pos", "Enter the position for this competition.");
+      if (pos && !comp) bad(f.comp, "comp", "Enter the competition name.");
+
+      if (first) {
+        msg.textContent = "Please fix the highlighted fields.";
+        first.focus();
+        return;
+      }
+
+      var entryId = "T-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      var stamp = new Date().toISOString();
+      var record = {
+        id: entryId,
+        childId: c.id,
+        date: date,
+        className: cls,
+        attendance: att,
+        grade: grade,
+        competition: comp,
+        position: pos,
+        note: note,
+        teacher: workerName(),
+        createdAt: stamp,
+        synced: false
+      };
+
+      // 1) Save locally first so nothing is lost if the network drops
+      var all = readLocal();
+      all.push(record);
+      writeLocal(all);
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+
+      // 2) Save to Firestore:
+      //    children/{id}/performance/{entryId}  (full entry)
+      //    children/{id}  ->  performance.{entryId}  (map on the child document)
+      var cloudRecord = {
+        childId: record.childId, date: record.date, className: record.className,
+        attendance: record.attendance, grade: record.grade, competition: record.competition,
+        position: record.position, note: record.note, teacher: record.teacher, createdAt: record.createdAt
+      };
+      var summary = {};
+      summary[entryId] = cloudRecord;
+
+      var batch = writeBatch(db);
+      batch.set(doc(db, "children", c.id, "performance", entryId), cloudRecord);
+      batch.set(doc(db, "children", c.id), {
+        performance: summary,
+        performanceUpdatedAt: stamp,
+        performanceUpdatedBy: record.teacher
+      }, { merge: true });
+
+      var outcome = "ok";
+      try {
+        await Promise.race([
+          batch.commit(),
+          new Promise(function (_, reject) {
+            setTimeout(function () { reject({ code: "timeout" }); }, SAVE_TIMEOUT_MS);
+          })
+        ]);
+        // Mark the local copy as synced
+        var list = readLocal();
+        list.forEach(function (r) { if (r.id === entryId) r.synced = true; });
+        writeLocal(list);
+      } catch (err) {
+        console.error("Firestore save failed:", err);
+        outcome = err && err.code === "permission-denied" ? "denied" : "pending";
+      }
+
+      if (outcome === "ok") {
+        msg.textContent = "Performance saved to the database for " + c.name + ".";
+        msg.className = "form-msg ok";
+      } else if (outcome === "denied") {
+        msg.textContent = "Saved on this device only. Firestore rules blocked the upload (permission denied).";
+        msg.className = "form-msg";
+      } else {
+        msg.textContent = "Saved on this device. It will upload automatically when the connection returns.";
+        msg.className = "form-msg ok";
+      }
+
+      // Clear everything except the child and date so the teacher can enter the next child quickly
+      f.att.value = "";
+      f.grade.value = "";
+      f.comp.value = "";
+      f.pos.value = "";
+      f.note.value = "";
+      $("note-count").textContent = "0 / 500";
+
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save performance";
+      renderEntries();
+    });
   </script>
 </body>
 </html>

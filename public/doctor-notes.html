@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Treatment notes – JeevanSetu</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root { --navy: #17243b; --navy2: #243b5a; --blue: #3569b8; --line: #c9d6ea; --muted: #5b6a80; --red: #9b1c1c; --green: #0d5c06; }
+    .notes-wrap { max-width: 760px; margin: 0 auto; color: var(--navy); padding-bottom: 2rem; }
+    .back-link { display: inline-block; margin: 1rem 0 0.5rem; color: var(--blue); font-weight: 600; }
+    .page-title h1 { margin: 0.2rem 0 0.25rem; font-size: 1.8rem; }
+    .page-title .sub { margin: 0.1rem 0; color: var(--muted); }
+    .page-title .welcome { margin-top: 0.5rem; color: var(--muted); font-size: 0.95rem; }
+
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 1.2rem 1.4rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(23,36,59,0.06); }
+    .card h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
+    .hint { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+    .field label { font-weight: 600; }
+    .field input, .field textarea {
+      padding: 0.6rem 0.7rem; border: 1px solid #9fb3d1; border-radius: 6px;
+      font: inherit; background: #fff; color: var(--navy); min-height: 2.6rem;
+    }
+    .field textarea { min-height: 7rem; resize: vertical; }
+    .field input:focus, .field textarea:focus { outline: 3px solid #9ec2f0; border-color: var(--blue); }
+    .field [aria-invalid="true"] { border-color: var(--red); background: #fff6f6; }
+    .field .err { font-size: 0.88rem; color: var(--red); font-weight: 600; }
+    .field .err:empty { display: none; }
+    .child-info { font-size: 0.92rem; margin: 0; min-height: 1.2em; color: var(--muted); }
+    .child-info.ok { color: var(--green); font-weight: 600; }
+    .child-info.bad { color: var(--red); font-weight: 600; }
+    .counter { font-size: 0.82rem; color: var(--muted); text-align: right; }
+
+    .btn { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 0.7rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer; }
+    .btn:hover, .btn:focus-visible { background: var(--navy2); outline: 3px solid #9ec2f0; }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .form-msg { font-weight: 600; min-height: 1.2em; margin: 0.5rem 0 0; color: var(--red); }
+    .form-msg.ok { color: var(--green); }
+
+    .note-item { border-left: 4px solid var(--blue); background: #f6f9fd; border-radius: 6px; padding: 0.7rem 0.9rem; margin-top: 0.6rem; }
+    .note-item.pending { border-left-color: #f28c1b; }
+    .note-item .meta { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .note-item p { margin: 0; white-space: pre-wrap; }
+
+    @media (max-width: 560px) { .row-2 { grid-template-columns: 1fr; } .btn { width: 100%; } }
+  </style>
+</head>
+<body data-page="role" data-role="doctor">
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
+        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
+          <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
+          <rect x="0" y="150" width="200" height="14" fill="#138808"/>
+        </svg>
+        <span class="brand-text">
+          <strong>JeevanSetu</strong>
+          <span>Child vaccination and development records</span>
+        </span>
+      </a>
+      <div class="dash-bar">
+        <span class="badge" id="role-badge">Doctor</span>
+        <span class="who" id="who"></span>
+        <button type="button" class="signout" id="signout">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+      <div class="empty guard" id="guard" hidden>
+        <p id="guard-text"></p>
+        <p><a class="primary-link" id="guard-link" href="index.html">Go to sign in</a></p>
+      </div>
+
+      <div id="content" hidden>
+        <div class="notes-wrap">
+          <a class="back-link" href="doctor.html">&larr; Dashboard</a>
+
+          <div class="page-title">
+            <h1>Treatment notes</h1>
+            <p class="sub" lang="hi">इलाज के नोट</p>
+            <p class="sub" lang="pa">ਇਲਾਜ ਦੇ ਨੋਟ</p>
+            <p class="welcome" id="welcome"></p>
+          </div>
+
+          <section class="card" aria-labelledby="h-note">
+            <h2 id="h-note">Add a treatment note</h2>
+            <p class="hint">Enter the child ID, the date of treatment, and what was done.</p>
+
+            <form id="note-form" novalidate>
+              <div class="row-2">
+                <div class="field">
+                  <label for="f-child">Child ID</label>
+                  <input id="f-child" autocomplete="off" placeholder="CH-XXXX-XXXX" aria-describedby="child-info e-child">
+                  <p class="child-info" id="child-info" aria-live="polite"></p>
+                  <span class="err" id="e-child"></span>
+                </div>
+                <div class="field">
+                  <label for="f-date">Date of treatment</label>
+                  <input id="f-date" type="date" aria-describedby="e-date">
+                  <span class="err" id="e-date"></span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="f-note">Treatment note</label>
+                <textarea id="f-note" maxlength="500" aria-describedby="note-count e-note"></textarea>
+                <span class="counter" id="note-count">0 / 500</span>
+                <span class="err" id="e-note"></span>
+              </div>
+
+              <p class="form-msg" id="form-msg" role="status" aria-live="polite"></p>
+              <p><button class="btn" type="submit" id="save-btn">Save note</button></p>
+            </form>
+          </section>
+
+          <section class="card" aria-labelledby="h-list">
+            <h2 id="h-list">Notes for this child</h2>
+            <p class="hint" id="list-hint">Enter a Child ID above to see its notes.</p>
+            <div id="notes-list"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Made with ♡ by Jeevansetu</p>
+    </div>
+  </footer>
+
+  <script src="settings.js"></script>
+  <script src="store.js"></script>
+  <script type="module" src="app.js"></script>
+
+  <!-- FIREBASE-CONNECTED TREATMENT NOTES SCRIPT -->
+  <script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+      initializeFirestore, getFirestore, persistentLocalCache,
+      collection, doc, getDoc, getDocs, writeBatch
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
+      authDomain: "syncedd.firebaseapp.com",
+      projectId: "syncedd",
+      storageBucket: "syncedd.firebasestorage.app",
+      messagingSenderId: "784392339011",
+      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
+      measurementId: "G-8YVJKBCGFL"
+    };
+
+    // Reuse the app/Firestore instance if another script already created one
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    let db;
+    try {
+      db = initializeFirestore(app, { localCache: persistentLocalCache() });
+    } catch (e) {
+      db = getFirestore(app);
+    }
+
+    const NOTES_KEY = "gs_notes";   // local copy, kept until it reaches Firestore
+    const SAVE_TIMEOUT_MS = 8000;
+
+    function $(id) { return document.getElementById(id); }
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+    function fmt(s) { return new Date(s + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+    function normId(v) { return String(v || "").trim().toUpperCase(); }
+    function readNotes() { try { return JSON.parse(localStorage.getItem(NOTES_KEY) || "[]"); } catch (e) { return []; } }
+    function writeNotes(list) { try { localStorage.setItem(NOTES_KEY, JSON.stringify(list)); } catch (e) { console.error(e); } }
+    function doctorName() {
+      return sessionStorage.getItem("js_user") ||
+        (window.GSStore && GSStore.deviceId ? GSStore.deviceId() : "Unknown Doctor");
+    }
+
+    var today = iso(new Date());
+    var idIn = $("f-child"), dateIn = $("f-date"), noteIn = $("f-note");
+    var childInfo = $("child-info"), msg = $("form-msg"), saveBtn = $("save-btn");
+    var listBox = $("notes-list"), listHint = $("list-hint"), counter = $("note-count");
+
+    dateIn.max = today;
+    dateIn.value = today;
+
+    var currentChild = null;   // { id (Firestore doc ID), name, dob, village }
+    var lookupToken = 0;       // ignores out-of-date async lookups
+    var lookupTimer = null;
+
+    function setErr(input, key, text) {
+      $("e-" + key).textContent = text || "";
+      input.setAttribute("aria-invalid", text ? "true" : "false");
+    }
+
+    // ---- Child lookup: Firestore first, then this device's local store ----
+    async function fetchChild(raw) {
+      var tries = [];
+      [raw.trim(), normId(raw), raw.trim().toLowerCase()].forEach(function (v) {
+        if (v && v.indexOf("/") === -1 && tries.indexOf(v) === -1) tries.push(v);
+      });
+
+      var networkProblem = false;
+      for (var i = 0; i < tries.length; i++) {
+        try {
+          var snap = await getDoc(doc(db, "children", tries[i]));
+          if (snap.exists()) {
+            var d = snap.data();
+            return { id: snap.id, name: d.name || "", dob: d.dob || "", village: d.village || "", source: "cloud" };
+          }
+        } catch (e) {
+          console.error("Child lookup failed:", e);
+          networkProblem = true;
+          break;
+        }
+      }
+
+      // Fallback: child registered only on this device
+      if (window.GSStore && GSStore.getChild) {
+        var local = GSStore.getChild(normId(raw));
+        if (local) return { id: local.id, name: local.name, dob: local.dob, village: local.village, source: "local" };
+      }
+      return networkProblem ? { error: true } : null;
+    }
+
+    async function lookup() {
+      var raw = idIn.value.trim();
+      var token = ++lookupToken;
+
+      if (!raw) {
+        currentChild = null;
+        childInfo.textContent = "";
+        childInfo.className = "child-info";
+        return null;
+      }
+
+      childInfo.textContent = "Checking...";
+      childInfo.className = "child-info";
+
+      var c = await fetchChild(raw);
+      if (token !== lookupToken) return currentChild; // a newer lookup is running
+
+      if (c && c.error) {
+        currentChild = null;
+        childInfo.textContent = "Could not reach the database. Check your connection.";
+        childInfo.className = "child-info bad";
+        return null;
+      }
+      if (!c) {
+        currentChild = null;
+        childInfo.textContent = "No child found with this ID.";
+        childInfo.className = "child-info bad";
+        return null;
+      }
+
+      currentChild = c;
+      childInfo.textContent = c.name + (c.dob ? " · born " + fmt(c.dob) : "") + (c.village ? " · " + c.village : "");
+      childInfo.className = "child-info ok";
+      if (c.dob) dateIn.min = c.dob;
+      return c;
+    }
+
+    // ---- Notes list: Firestore + any not-yet-synced local notes ----
+    async function renderList() {
+      listBox.textContent = "";
+
+      if (!currentChild) {
+        listHint.textContent = "Enter a Child ID above to see its notes.";
+        return;
+      }
+      var child = currentChild;
+      listHint.textContent = "Loading notes...";
+
+      var byId = {};
+      var cloudFailed = false;
+      try {
+        var snap = await getDocs(collection(db, "children", child.id, "notes"));
+        snap.forEach(function (d) { var r = d.data(); r.id = d.id; r.synced = true; byId[d.id] = r; });
+      } catch (e) {
+        console.error("Could not load notes:", e);
+        cloudFailed = true;
+      }
+
+      // Merge in local notes for this child (includes ones waiting to sync)
+      readNotes().forEach(function (r) {
+        if (r.childId === child.id && !byId[r.id]) byId[r.id] = r;
+      });
+
+      if (child !== currentChild) return; // user switched child meanwhile
+      listBox.textContent = "";
+
+      var items = Object.keys(byId).map(function (k) { return byId[k]; });
+      items.sort(function (a, b) {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return (a.createdAt || "") < (b.createdAt || "") ? 1 : -1;
+      });
+
+      var warn = cloudFailed ? " Some notes could not be loaded from the database." : "";
+
+      if (!items.length) {
+        listHint.textContent = "No treatment notes yet for this child." + warn;
+        return;
+      }
+      listHint.textContent = items.length + (items.length === 1 ? " note" : " notes") + ", newest first." + warn;
+
+      items.forEach(function (n) {
+        var pending = n.synced === false;
+        var item = document.createElement("div");
+        item.className = "note-item" + (pending ? " pending" : "");
+
+        var meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = fmt(n.date) + " · recorded by " + (n.doctor || "") + (pending ? " · waiting to sync" : "");
+
+        var body = document.createElement("p");
+        body.textContent = n.note;
+
+        item.append(meta, body);
+        listBox.appendChild(item);
+      });
+    }
+
+    async function lookupAndRender() {
+      await lookup();
+      await renderList();
+    }
+
+    idIn.addEventListener("input", function () {
+      clearTimeout(lookupTimer);
+      lookupTimer = setTimeout(lookupAndRender, 350);
+    });
+    noteIn.addEventListener("input", function () {
+      counter.textContent = noteIn.value.length + " / 500";
+    });
+
+    // Prefill from ?child=CH-XXXX-XXXX
+    var param = new URLSearchParams(window.location.search).get("child");
+    if (param) idIn.value = normId(param);
+    lookupAndRender();
+
+    // ---- Save ----
+    $("note-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      msg.textContent = "";
+      msg.className = "form-msg";
+
+      clearTimeout(lookupTimer);
+      var c = await lookup();
+
+      var date = dateIn.value;
+      var note = noteIn.value.trim();
+      var first = null;
+
+      function bad(input, key, text) {
+        setErr(input, key, text);
+        if (!first) first = input;
+      }
+      var map = { child: idIn, date: dateIn, note: noteIn };
+      Object.keys(map).forEach(function (k) { setErr(map[k], k, ""); });
+
+      if (!c) bad(idIn, "child", "Enter a valid Child ID.");
+      if (!date) bad(dateIn, "date", "Choose the date of treatment.");
+      else if (date > today) bad(dateIn, "date", "The date cannot be in the future.");
+      else if (c && c.dob && date < c.dob) bad(dateIn, "date", "The date is before the child's date of birth.");
+      if (!note) bad(noteIn, "note", "Write the treatment note.");
+
+      if (first) {
+        msg.textContent = "Please fix the highlighted fields.";
+        first.focus();
+        return;
+      }
+
+      var noteId = "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      var stamp = new Date().toISOString();
+      var record = {
+        id: noteId,
+        childId: c.id,
+        date: date,
+        note: note,
+        doctor: doctorName(),
+        createdAt: stamp,
+        synced: false
+      };
+
+      // 1) Save locally first so nothing is lost if the network drops
+      var all = readNotes();
+      all.push(record);
+      writeNotes(all);
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+
+      // 2) Save to Firestore:
+      //    children/{id}/notes/{noteId}  (full note)
+      //    children/{id}  ->  notes.{noteId}  (map on the child document)
+      var cloudRecord = {
+        childId: record.childId, date: record.date, note: record.note,
+        doctor: record.doctor, createdAt: record.createdAt
+      };
+      var summary = {};
+      summary[noteId] = cloudRecord;
+
+      var batch = writeBatch(db);
+      batch.set(doc(db, "children", c.id, "notes", noteId), cloudRecord);
+      batch.set(doc(db, "children", c.id), {
+        notes: summary,
+        notesUpdatedAt: stamp,
+        notesUpdatedBy: record.doctor
+      }, { merge: true });
+
+      var outcome = "ok";
+      var timer = null;
+      try {
+        await Promise.race([
+          batch.commit(),
+          new Promise(function (_, reject) {
+            timer = setTimeout(function () { reject({ code: "timeout" }); }, SAVE_TIMEOUT_MS);
+          })
+        ]);
+        // Mark the local copy as synced
+        var list = readNotes();
+        list.forEach(function (r) { if (r.id === noteId) r.synced = true; });
+        writeNotes(list);
+      } catch (err) {
+        console.error("Firestore save failed:", err);
+        outcome = err && err.code === "permission-denied" ? "denied" : "pending";
+      } finally {
+        clearTimeout(timer);
+      }
+
+      if (outcome === "ok") {
+        msg.textContent = "Note saved to the database for " + c.name + ".";
+        msg.className = "form-msg ok";
+      } else if (outcome === "denied") {
+        msg.textContent = "Saved on this device only. Firestore rules blocked the upload (permission denied).";
+        msg.className = "form-msg";
+      } else {
+        msg.textContent = "Saved on this device. It will upload automatically when the connection returns.";
+        msg.className = "form-msg ok";
+      }
+
+      // Clear the note only, so the doctor can add the next note quickly
+      noteIn.value = "";
+      counter.textContent = "0 / 500";
+
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save note";
+      renderList();
+    });
+  </script>
+</body>
+</html>

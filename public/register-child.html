@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register a child – JeevanSetu</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Self-contained styles */
+    .reg-wrap { max-width: 760px; margin: 0 auto; }
+    .back-link { display: inline-block; margin: 1rem 0 0.5rem; color: #3569b8; font-weight: 600; }
+    .reg-head h1 { margin: 0.25rem 0 0.25rem; color: #17243b; font-size: 1.8rem; }
+    .reg-head .sub { margin: 0.1rem 0; color: #4a5a72; }
+    .reg-head .welcome { margin-top: 0.5rem; color: #4a5a72; font-size: 0.95rem; }
+
+    .steps { display: flex; gap: 0.5rem; margin: 1.25rem 0 0.5rem; flex-wrap: wrap; }
+    .steps span {
+      font-size: 0.9rem; padding: 0.3rem 0.75rem; border-radius: 999px;
+      background: #e5ecf7; color: #243b5a; font-weight: 600;
+    }
+
+    .card {
+      background: #ffffff; border: 1px solid #c9d6ea; border-radius: 10px;
+      padding: 1.25rem 1.5rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(23,36,59,0.06);
+    }
+    .card h2 { margin: 0 0 0.25rem; font-size: 1.15rem; color: #17243b; }
+    .card .hint { margin: 0 0 1rem; color: #4a5a72; font-size: 0.92rem; }
+
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem 1.25rem; }
+    .field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .field label { font-weight: 600; color: #17243b; }
+    .field .req { color: #9b1c1c; }
+    .field input, .field select {
+      padding: 0.6rem 0.7rem; border: 1px solid #9fb3d1; border-radius: 6px;
+      font: inherit; background: #fff; color: #17243b; min-height: 2.5rem;
+    }
+    .field input:focus, .field select:focus { outline: 3px solid #9ec2f0; border-color: #3569b8; }
+    .field input[aria-invalid="true"], .field select[aria-invalid="true"] { border-color: #9b1c1c; background: #fff6f6; }
+    .field .help { font-size: 0.85rem; color: #5b6a80; }
+    .field .err { font-size: 0.88rem; color: #9b1c1c; font-weight: 600; min-height: 0; }
+    .field .err:empty { display: none; }
+
+    .upload {
+      border: 2px dashed #9fb3d1; border-radius: 10px; padding: 1.25rem; text-align: center;
+      background: #f6f9fd; transition: background 0.15s, border-color 0.15s;
+    }
+    .upload:hover, .upload.drag { background: #eaf2fc; border-color: #3569b8; }
+    .upload input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .upload-btn {
+      display: inline-block; background: #3569b8; color: #fff; border-radius: 6px;
+      padding: 0.6rem 1.1rem; font-weight: 600; cursor: pointer;
+    }
+    .upload-btn:hover, .upload input:focus-visible + .upload-btn { background: #243b5a; outline: 3px solid #9ec2f0; }
+    .upload p { margin: 0.5rem 0 0; color: #4a5a72; font-size: 0.9rem; }
+    .file-info {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+      margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: #fff; border: 1px solid #c9d6ea;
+      border-radius: 6px; text-align: left; font-size: 0.95rem;
+    }
+    .file-info button { background: none; border: 0; color: #9b1c1c; font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
+    .btn {
+      background: #3569b8; color: #fff; border: 0; border-radius: 6px; padding: 0.7rem 1.4rem;
+      font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .btn:hover, .btn:focus-visible { background: #243b5a; outline: 3px solid #9ec2f0; }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .btn-ghost { background: #fff; color: #243b5a; border: 1px solid #9fb3d1; }
+    .btn-ghost:hover { background: #eef4fb; }
+    .form-msg { color: #9b1c1c; font-weight: 600; }
+
+    .success {
+      background: #eef8ee; border: 1px solid #138808; border-left-width: 6px; border-radius: 10px;
+      padding: 1.25rem 1.5rem; margin: 1rem 0;
+    }
+    .success h2 { margin: 0 0 0.5rem; color: #17243b; font-size: 1.15rem; }
+    .id-box {
+      font-size: 1.6rem; font-weight: 700; letter-spacing: 0.1em; color: #17243b;
+      background: #fff; border: 1px dashed #138808; border-radius: 8px;
+      padding: 0.6rem 1rem; display: inline-block; margin: 0.5rem 0;
+    }
+    .success p { margin: 0.4rem 0; }
+
+    @media (max-width: 520px) {
+      .card { padding: 1rem; }
+      .actions .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body data-page="role" data-role="asha">
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
+        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
+          <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
+          <rect x="0" y="150" width="200" height="14" fill="#138808"/>
+        </svg>
+        <span class="brand-text">
+          <strong>JeevanSetu</strong>
+          <span>Child vaccination and development records</span>
+        </span>
+      </a>
+      <div class="dash-bar">
+        <span class="badge" id="role-badge">ASHA worker</span>
+        <span class="who" id="who"></span>
+        <button type="button" class="signout" id="signout">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+      <div class="empty guard" id="guard" hidden>
+        <p id="guard-text"></p>
+        <p><a class="primary-link" id="guard-link" href="index.html">Go to sign in</a></p>
+      </div>
+
+      <div id="content" hidden>
+        <div class="reg-wrap">
+          <a class="back-link" href="healthworker.html">&larr; Dashboard</a>
+
+          <div class="reg-head">
+            <h1>Register a child</h1>
+            <p class="sub" lang="hi">बच्चे का पंजीकरण करें</p>
+            <p class="sub" lang="pa">ਬੱਚੇ ਦੀ ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਕਰੋ</p>
+            <p class="welcome" id="welcome"></p>
+          </div>
+
+          <div class="steps" aria-hidden="true">
+            <span>1. Child details</span>
+            <span>2. Guardian</span>
+            <span>3. Birth certificate</span>
+          </div>
+
+          <div id="result" class="success" role="status" hidden></div>
+
+          <form id="child-form" novalidate>
+            <section class="card" aria-labelledby="h-child">
+              <h2 id="h-child">Child details</h2>
+              <p class="hint">Name and date of birth must match the birth certificate.</p>
+              <div class="fields">
+                <div class="field">
+                  <label for="f-name">Child's Full Name <span class="req" aria-hidden="true">*</span></label>
+                  <input id="f-name" name="name" autocomplete="off" required aria-describedby="e-name">
+                  <span class="err" id="e-name"></span>
+                </div>
+                
+                <!-- NEW CUSTOM USERNAME FIELD FOR THE CHILD -->
+                <div class="field">
+                  <label for="f-childId">Child Username (Unique ID) <span class="req" aria-hidden="true">*</span></label>
+                  <input id="f-childId" name="childId" type="text" autocomplete="off" autocapitalize="none" required aria-describedby="e-childId">
+                  <span class="help">No spaces (e.g., rahul_2024)</span>
+                  <span class="err" id="e-childId"></span>
+                </div>
+
+                <div class="field">
+                  <label for="f-dob">Date of birth <span class="req" aria-hidden="true">*</span></label>
+                  <input id="f-dob" type="date" name="dob" required aria-describedby="e-dob">
+                  <span class="err" id="e-dob"></span>
+                </div>
+                <div class="field">
+                  <label for="f-sex">Sex <span class="req" aria-hidden="true">*</span></label>
+                  <select id="f-sex" name="sex" required aria-describedby="e-sex">
+                    <option value="">Select</option>
+                    <option>Female</option>
+                    <option>Male</option>
+                    <option>Other</option>
+                  </select>
+                  <span class="err" id="e-sex"></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card" aria-labelledby="h-guard">
+              <h2 id="h-guard">Guardian and village</h2>
+              <p class="hint">Parent or caregiver. The mobile number is used to contact them.</p>
+              <div class="fields">
+                <div class="field">
+                  <label for="f-gname">Guardian name <span class="req" aria-hidden="true">*</span></label>
+                  <input id="f-gname" name="guardianName" autocomplete="off" required aria-describedby="e-gname">
+                  <span class="err" id="e-gname"></span>
+                </div>
+                <div class="field">
+                  <label for="f-mobile">Guardian mobile <span class="req" aria-hidden="true">*</span></label>
+                  <input id="f-mobile" name="guardianMobile" type="tel" inputmode="numeric" maxlength="10" autocomplete="off" required aria-describedby="h-mobile e-mobile">
+                  <span class="help" id="h-mobile">10 digits, no +91 or spaces</span>
+                  <span class="err" id="e-mobile"></span>
+                </div>
+                <div class="field">
+                  <label for="f-village">Village <span class="req" aria-hidden="true">*</span></label>
+                  <input id="f-village" name="village" autocomplete="off" required aria-describedby="e-village">
+                  <span class="err" id="e-village"></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card" aria-labelledby="h-cert">
+              <h2 id="h-cert">Birth certificate <span style="font-weight:400;color:#5b6a80;">(optional)</span></h2>
+              <p class="hint">Upload a photo or scan. JPG, PNG or PDF, up to 1 MB.</p>
+              <div class="upload" id="upload-zone">
+                <input type="file" id="f-cert" name="birthCert" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
+                <label for="f-cert" class="upload-btn">Choose birth certificate</label>
+                <p>or drag and drop the file here</p>
+                <div class="file-info" id="file-info" hidden>
+                  <span id="file-name"></span>
+                  <button type="button" id="file-remove">Remove</button>
+                </div>
+                <span class="err" id="e-cert"></span>
+              </div>
+            </section>
+
+            <p class="form-msg" id="form-error" role="alert"></p>
+            <div class="actions">
+              <button class="btn" type="submit" id="save-btn">Save child</button>
+              <a class="btn btn-ghost" href="healthworker.html">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Made with ♡ by Jeevansetu</p>
+    </div>
+  </footer>
+
+  <script src="settings.js"></script>
+  <!-- Keep app.js for authentication guards -->
+  <script type="module" src="app.js"></script>
+
+  <!-- FIREBASE EMBEDDED SCRIPT -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { initializeFirestore, persistentLocalCache, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // 1. Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
+      authDomain: "syncedd.firebaseapp.com",
+      projectId: "syncedd",
+      storageBucket: "syncedd.firebasestorage.app",
+      messagingSenderId: "784392339011",
+      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
+      measurementId: "G-8YVJKBCGFL"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+
+    var MAX_BYTES = 1024 * 1024;
+    var ALLOWED = ["image/jpeg", "image/png", "application/pdf"];
+
+    var form = document.getElementById("child-form");
+    var result = document.getElementById("result");
+    var formErr = document.getElementById("form-error");
+    var saveBtn = document.getElementById("save-btn");
+    var fileInput = document.getElementById("f-cert");
+    var zone = document.getElementById("upload-zone");
+    var fileInfo = document.getElementById("file-info");
+    var fileName = document.getElementById("file-name");
+    var certErr = document.getElementById("e-cert");
+    var chosen = null;
+
+    // Prevent future birth dates
+    var d = new Date();
+    var today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    form.elements.dob.max = today;
+
+    function fmtSize(bytes) { return bytes < 1024 * 1024 ? Math.round(bytes / 1024) + " KB" : (bytes / 1048576).toFixed(1) + " MB"; }
+
+    function setFieldError(input, msg) {
+      var err = document.getElementById("e-" + input.id.replace("f-", ""));
+      if (err) err.textContent = msg || "";
+      input.setAttribute("aria-invalid", msg ? "true" : "false");
+    }
+
+    function clearErrors() {
+      formErr.textContent = "";
+      Array.prototype.forEach.call(form.elements, function (el) {
+        if (el.id && el.id.indexOf("f-") === 0) setFieldError(el, "");
+      });
+    }
+
+    function checkFile(file) {
+      if (!file) return "";
+      if (ALLOWED.indexOf(file.type) === -1) return "Use a JPG, PNG or PDF file.";
+      if (file.size > MAX_BYTES) return "File is " + fmtSize(file.size) + ". The limit is 1 MB.";
+      return "";
+    }
+
+    function showFile(file) {
+      chosen = file;
+      certErr.textContent = "";
+      if (!file) { fileInfo.hidden = true; fileInput.value = ""; return; }
+      var msg = checkFile(file);
+      if (msg) { certErr.textContent = msg; chosen = null; fileInfo.hidden = true; fileInput.value = ""; return; }
+      fileName.textContent = file.name + " (" + fmtSize(file.size) + ")";
+      fileInfo.hidden = false;
+    }
+
+    fileInput.addEventListener("change", function () { showFile(fileInput.files[0] || null); });
+    document.getElementById("file-remove").addEventListener("click", function () { showFile(null); });
+
+    // Drag and drop
+    ["dragenter", "dragover"].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add("drag"); }); });
+    ["dragleave", "drop"].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove("drag"); }); });
+    zone.addEventListener("drop", function (e) { var f = e.dataTransfer.files[0]; if (f) showFile(f); });
+
+    var mobile = form.elements.guardianMobile;
+    mobile.addEventListener("input", function () { mobile.value = mobile.value.replace(/\D/g, "").slice(0, 10); });
+
+    function readFile(file) {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function () { resolve({ name: file.name, type: file.type, size: file.size, dataUrl: reader.result }); };
+        reader.onerror = function () { reject(new Error("read")); };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function validate(data) {
+      var ok = true, first = null;
+      function bad(input, msg) {
+        setFieldError(input, msg);
+        if (!first) first = input;
+        ok = false;
+      }
+      
+      if (!data.name) bad(form.elements.name, "Enter the child's name.");
+      
+      // Validate Custom Child Username
+      if (!/^[a-z0-9_]{3,20}$/.test(data.childId)) {
+        bad(form.elements.childId, "Username must be 3-20 characters, letters/numbers/underscores only.");
+      }
+
+      if (!data.dob) bad(form.elements.dob, "Enter the date of birth.");
+      else if (data.dob > today) bad(form.elements.dob, "Date of birth cannot be in the future.");
+      if (!data.sex) bad(form.elements.sex, "Select the sex.");
+      if (!data.guardianName) bad(form.elements.guardianName, "Enter the guardian's name.");
+      if (!/^\d{10}$/.test(data.guardianMobile)) bad(mobile, "Enter a 10-digit mobile number.");
+      if (!data.village) bad(form.elements.village, "Enter the village.");
+      if (!ok) first.focus();
+      return ok;
+    }
+
+    function showSuccess(id, hasCert) {
+      result.textContent = "";
+      var h = document.createElement("h2");
+      h.textContent = "Child registered successfully";
+      var lbl = document.createElement("p");
+      lbl.textContent = "Child Username (Write this on their physical health card):";
+      var box = document.createElement("div");
+      box.className = "id-box";
+      box.textContent = id;
+      var note = document.createElement("p");
+      note.textContent = hasCert
+        ? "Birth certificate saved with this record and synced to cloud."
+        : "No birth certificate attached. You can add one later.";
+      
+      var again = document.createElement("a");
+      again.href = "register-child.html";
+      again.className = "btn";
+      again.style.display = "inline-block";
+      again.style.marginTop = "1rem";
+      again.textContent = "Register another child";
+      
+      result.append(h, lbl, box, note, again);
+      result.hidden = false;
+      result.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // FIREBASE SAVE LOGIC WITH DUPLICATION CHECK
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      clearErrors();
+      
+      var data = {};
+      ["name", "childId", "dob", "sex", "guardianName", "guardianMobile", "village"].forEach(function (k) {
+        data[k] = form.elements[k].value.trim().toLowerCase();
+      });
+
+      // Maintain actual capitalization for names/village, but keep childId lowercase
+      data.name = form.elements.name.value.trim();
+      data.guardianName = form.elements.guardianName.value.trim();
+      data.village = form.elements.village.value.trim();
+
+      if (!validate(data)) {
+        formErr.textContent = "Please fix the highlighted fields.";
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Checking Database...";
+
+      const childRef = doc(db, "children", data.childId);
+
+      // 1. Check if the Username already exists in Firestore
+      getDoc(childRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          // It's taken! Stop and warn the user.
+          setFieldError(form.elements.childId, "This Username is already taken! Please choose another.");
+          formErr.textContent = "Username collision detected.";
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save child";
+          form.elements.childId.focus();
+          return;
+        }
+
+        // 2. Not taken! Proceed to read file and save.
+        saveBtn.textContent = "Saving to Database...";
+        var certPromise = chosen ? readFile(chosen) : Promise.resolve(null);
+        
+        certPromise.then(function (cert) {
+          const currentWorker = sessionStorage.getItem("js_user") || "Unknown Worker";
+
+          return setDoc(childRef, {
+            childId: data.childId,
+            name: data.name,
+            dob: data.dob,
+            sex: data.sex,
+            guardianName: data.guardianName,
+            guardianMobile: data.guardianMobile,
+            village: data.village,
+            birthCertDataUrl: cert ? cert.dataUrl : null,
+            registeredBy: currentWorker,
+            createdAt: new Date().toISOString()
+          }).then(() => {
+            result.hidden = true;
+            form.reset();
+            form.elements.dob.max = today;
+            chosen = null;
+            showFile(null);
+            showSuccess(data.childId, !!cert);
+          });
+
+        }).catch(function (error) {
+          formErr.textContent = "Could not save. Please check your connection or file size.";
+          console.error(error);
+        }).finally(function () {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save child";
+        });
+      });
+    });
+  </script>
+</body>
+</html>

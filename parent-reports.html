@@ -22,6 +22,7 @@
     .search-row input:focus { outline: 3px solid #9ec2f0; border-color: var(--blue); }
     .btn { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 0.6rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; }
     .btn:hover, .btn:focus-visible { background: var(--navy2); outline: 3px solid #9ec2f0; }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
     .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.6rem 0.9rem; margin-top: 0.7rem; }
@@ -104,7 +105,7 @@
             <form id="search-form" class="search-row" role="search">
               <label class="sr-only" for="q">Child ID</label>
               <input id="q" autocomplete="off" placeholder="Child ID (CH-XXXX-XXXX)" required>
-              <button class="btn" type="submit">Show reports</button>
+              <button class="btn" id="search-btn" type="submit">Show reports</button>
             </form>
             <p class="msg err" id="search-msg" role="alert"></p>
           </section>
@@ -146,145 +147,275 @@
   <script src="settings.js"></script>
   <script src="store.js"></script>
   <script type="module" src="app.js"></script>
-  <script>
-    (function () {
-      "use strict";
-      var S = GSStore;
-      var KEY_NOTES = "gs_notes";             // doctor notes (doctor-notes.html)
-      var KEY_VAX = "gs_vax";                 // ASHA vaccination records (store.js)
-      var KEY_TEACHER = "gs_teacher_reports"; // teacher entries (teacher-performance.html)
-      var childId = null, filter = "all", reports = [];
 
-      function $(id) { return document.getElementById(id); }
-      function read(k) { try { return JSON.parse(localStorage.getItem(k) || "[]"); } catch (e) { return []; } }
-      function normId(v) { return String(v || "").trim().toUpperCase(); }
-      function fmt(s) {
-        if (!s) return "";
-        var d = new Date(String(s).length <= 10 ? s + "T00:00:00" : s);
-        return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  <!-- FIREBASE-CONNECTED CHILD REPORTS SCRIPT -->
+  <script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+      initializeFirestore, getFirestore, persistentLocalCache,
+      collection, doc, getDoc, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
+      authDomain: "syncedd.firebaseapp.com",
+      projectId: "syncedd",
+      storageBucket: "syncedd.firebasestorage.app",
+      messagingSenderId: "784392339011",
+      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
+      measurementId: "G-8YVJKBCGFL"
+    };
+
+    // Reuse the app/Firestore instance if another script already created one
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    let db;
+    try {
+      db = initializeFirestore(app, { localCache: persistentLocalCache() });
+    } catch (e) {
+      db = getFirestore(app);
+    }
+
+    // Local copies (used only to fill gaps when something has not reached the cloud yet)
+    const KEY_NOTES = "gs_notes";
+    const KEY_VAX = "gs_vax";
+    const KEY_TEACHER = "gs_teacher_reports";
+
+    var filter = "all", reports = [], loadToken = 0;
+
+    function $(id) { return document.getElementById(id); }
+    function read(k) { try { return JSON.parse(localStorage.getItem(k) || "[]"); } catch (e) { return []; } }
+    function normId(v) { return String(v || "").trim().toUpperCase(); }
+    function fmt(s) {
+      if (!s) return "";
+      var d = new Date(String(s).length <= 10 ? s + "T00:00:00" : s);
+      if (isNaN(d.getTime())) return String(s);
+      return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    }
+    function fact(label, value) {
+      var f = document.createElement("div"); f.className = "fact";
+      var s = document.createElement("span"); s.textContent = label;
+      var st = document.createElement("strong"); st.textContent = value || "-";
+      f.append(s, st);
+      return f;
+    }
+
+    // ---- Firestore helpers ----
+    async function getSub(childDocId, name) {
+      var out = [];
+      try {
+        var snap = await getDocs(collection(db, "children", childDocId, name));
+        snap.forEach(function (d) { var x = d.data(); x._docId = d.id; out.push(x); });
+      } catch (e) {
+        console.error("Could not load " + name + ":", e);
+        out.failed = true;
       }
-      function fact(label, value) {
-        var f = document.createElement("div"); f.className = "fact";
-        var s = document.createElement("span"); s.textContent = label;
-        var st = document.createElement("strong"); st.textContent = value || "-";
-        f.append(s, st);
-        return f;
+      return out;
+    }
+
+    async function fetchChild(raw) {
+      var tries = [];
+      [raw.trim(), normId(raw), raw.trim().toLowerCase()].forEach(function (v) {
+        if (v && v.indexOf("/") === -1 && tries.indexOf(v) === -1) tries.push(v);
+      });
+
+      var networkProblem = false;
+      for (var i = 0; i < tries.length; i++) {
+        try {
+          var snap = await getDoc(doc(db, "children", tries[i]));
+          if (snap.exists()) {
+            var d = snap.data();
+            return {
+              id: snap.id, name: d.name, dob: d.dob, sex: d.sex,
+              village: d.village, guardianName: d.guardianName, source: "cloud"
+            };
+          }
+        } catch (e) {
+          console.error("Child lookup failed:", e);
+          networkProblem = true;
+          break;
+        }
       }
 
-      // Vaccination records that have not been replaced by a later entry
-      function currentVax(id) {
-        var all = read(KEY_VAX);
-        var replaced = {};
-        all.forEach(function (e) { (e.parents || []).forEach(function (p) { replaced[p] = true; }); });
-        return all.filter(function (e) { return e.childId === id && !replaced[e.id]; });
+      // Fallback: child saved only on this device
+      if (window.GSStore && GSStore.getChild) {
+        var c = GSStore.getChild(normId(raw));
+        if (c) return { id: c.id, name: c.name, dob: c.dob, sex: c.sex, village: c.village, guardianName: c.guardianName, source: "local" };
       }
+      return networkProblem ? { error: true } : null;
+    }
 
-      // Collect healthcare and academic reports into one list
-      function collect(id) {
-        var list = [];
+    // ---- Collect healthcare + academic reports ----
+    async function collect(id) {
+      var list = [];
 
-        currentVax(id).forEach(function (e) {
+      var results = await Promise.all([
+        getSub(id, "vaccinations"),
+        getSub(id, "notes"),
+        getSub(id, "performance")
+      ]);
+      var vax = results[0], notes = results[1], perf = results[2];
+
+      // Vaccinations (cloud)
+      var cloudVaxCodes = {};
+      vax.forEach(function (v) {
+        if (!v.dateGiven) return;
+        cloudVaxCodes[v._docId] = true;
+        list.push({
+          category: "health", kind: "Vaccination", date: v.dateGiven,
+          title: v._docId + " given",
+          by: "ASHA worker" + (v.recordedBy ? ": " + v.recordedBy : ""),
+          body: v.timestamp ? "Recorded on " + fmt(v.timestamp) : ""
+        });
+      });
+
+      // Vaccinations saved only on this device (old format), skip ones already in the cloud
+      var allVax = read(KEY_VAX), replaced = {};
+      allVax.forEach(function (e) { (e.parents || []).forEach(function (p) { replaced[p] = true; }); });
+      allVax.filter(function (e) { return e.childId === id && !replaced[e.id] && !cloudVaxCodes[e.vaccine]; })
+        .forEach(function (e) {
           list.push({
             category: "health", kind: "Vaccination", date: e.date,
             title: e.vaccine + " given", by: "ASHA worker",
-            body: "Recorded on " + fmt((e.ts || "").slice(0, 10))
+            body: "Recorded on " + fmt((e.ts || "").slice(0, 10)) + " (on this device, not yet uploaded)"
           });
         });
 
-        read(KEY_NOTES).filter(function (n) { return n.childId === id; }).forEach(function (n) {
-          list.push({
-            category: "health", kind: "Treatment note", date: n.date,
-            title: "Doctor's treatment note", by: "Doctor", body: n.note
-          });
+      // Doctor notes (cloud + local)
+      var seenNotes = {};
+      notes.forEach(function (n) {
+        seenNotes[n._docId] = true;
+        seenNotes[(n.date || "") + "|" + (n.note || "")] = true;
+        list.push({
+          category: "health", kind: "Treatment note", date: n.date || (n.createdAt || "").slice(0, 10),
+          title: "Doctor's treatment note",
+          by: "Doctor" + (n.doctor ? ": " + n.doctor : ""),
+          body: n.note || ""
         });
-
-        read(KEY_TEACHER).filter(function (r) { return r.childId === id; }).forEach(function (r) {
-          var lines = [];
-          if (r.className || r.grade || r.attendance !== undefined) {
-            lines.push("Class: " + (r.className || "-") +
-              " · Grade: " + (r.grade || "-") +
-              " · Attendance: " + (r.attendance !== undefined && r.attendance !== "" ? r.attendance + "%" : "-"));
-          }
-          if (r.competition) lines.push("Achievement: " + r.competition + " – " + (r.position || "-"));
-          if (r.note) lines.push(r.note);
-
-          list.push({
-            category: "academic",
-            kind: "Class performance",
-            date: r.date,
-            title: (r.className ? r.className : "Class") + " performance",
-            by: "Teacher: " + (r.teacher || "-"),
-            body: lines.join("\n")
-          });
+      });
+      read(KEY_NOTES).filter(function (n) { return n.childId === id; }).forEach(function (n) {
+        if ((n.id && seenNotes[n.id]) || seenNotes[(n.date || "") + "|" + (n.note || "")]) return;
+        list.push({
+          category: "health", kind: "Treatment note", date: n.date,
+          title: "Doctor's treatment note", by: "Doctor", body: n.note
         });
+      });
 
-        list.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
-        return list;
-      }
-
-      function renderSummary() {
-        var h = reports.filter(function (r) { return r.category === "health"; }).length;
-        var a = reports.filter(function (r) { return r.category === "academic"; }).length;
-        $("n-all").textContent = reports.length;
-        $("n-health").textContent = h;
-        $("n-acad").textContent = a;
-      }
-
-      function renderList() {
-        var box = $("reports");
-        box.textContent = "";
-        var shown = reports.filter(function (r) { return filter === "all" || r.category === filter; });
-        var labels = { all: "reports", health: "healthcare reports", academic: "academic reports" };
-
-        if (!reports.length) {
-          $("list-hint").textContent = "No reports saved on this device for this child yet.";
-          return;
+      // Class performance (cloud + local)
+      var seenPerf = {};
+      function addPerf(r, onDeviceOnly) {
+        var lines = [];
+        if (r.className || r.grade || r.attendance !== undefined) {
+          lines.push("Class: " + (r.className || "-") +
+            " · Grade: " + (r.grade || "-") +
+            " · Attendance: " + (r.attendance !== undefined && r.attendance !== "" ? r.attendance + "%" : "-"));
         }
-        if (!shown.length) {
-          $("list-hint").textContent = "No " + labels[filter] + " for this child yet.";
-          return;
-        }
-        $("list-hint").textContent = "Showing " + shown.length + " " + labels[filter] + ", newest first.";
+        if (r.competition) lines.push("Achievement: " + r.competition + " – " + (r.position || "-"));
+        if (r.note) lines.push(r.note);
+        if (onDeviceOnly) lines.push("(on this device, not yet uploaded)");
 
-        shown.forEach(function (r) {
-          var card = document.createElement("article");
-          card.className = "report " + (r.category === "health" ? "health" : "academic");
-
-          var top = document.createElement("div");
-          top.className = "report-top";
-          var pill = document.createElement("span");
-          pill.className = "pill " + (r.category === "health" ? "health" : "academic");
-          pill.textContent = r.category === "health" ? "Healthcare" : "Academic";
-          var date = document.createElement("span");
-          date.className = "meta";
-          date.textContent = fmt(r.date);
-          top.append(pill, date);
-
-          var title = document.createElement("h3");
-          title.textContent = r.title;
-          var meta = document.createElement("div");
-          meta.className = "meta";
-          meta.textContent = r.kind + " · " + r.by;
-          var body = document.createElement("p");
-          body.className = "body";
-          body.textContent = r.body || "";
-
-          card.append(top, title, meta);
-          if (r.body) card.appendChild(body);
-          box.appendChild(card);
+        list.push({
+          category: "academic",
+          kind: "Class performance",
+          date: r.date,
+          title: (r.className ? r.className : "Class") + " performance",
+          by: "Teacher: " + (r.teacher || "-"),
+          body: lines.join("\n")
         });
       }
+      perf.forEach(function (r) { seenPerf[r._docId] = true; addPerf(r, false); });
+      read(KEY_TEACHER).filter(function (r) { return r.childId === id; }).forEach(function (r) {
+        if (seenPerf[r.id] || r.synced === true) return;
+        addPerf(r, true);
+      });
 
-      function openChild(id) {
-        var c = S.getChild(id);
-        if (!c) {
-          $("search-msg").textContent = "No child found on this device for that ID. Check the ID, or ask the ASHA worker to confirm it.";
+      list.sort(function (a, b) { return (a.date || "") < (b.date || "") ? 1 : (a.date || "") > (b.date || "") ? -1 : 0; });
+      list.loadFailed = !!(vax.failed || notes.failed || perf.failed);
+      return list;
+    }
+
+    function renderSummary() {
+      var h = reports.filter(function (r) { return r.category === "health"; }).length;
+      var a = reports.filter(function (r) { return r.category === "academic"; }).length;
+      $("n-all").textContent = reports.length;
+      $("n-health").textContent = h;
+      $("n-acad").textContent = a;
+    }
+
+    function renderList() {
+      var box = $("reports");
+      box.textContent = "";
+      var shown = reports.filter(function (r) { return filter === "all" || r.category === filter; });
+      var labels = { all: "reports", health: "healthcare reports", academic: "academic reports" };
+
+      if (!reports.length) {
+        $("list-hint").textContent = reports.loadFailed
+          ? "Could not load reports. Check your connection and try again."
+          : "No reports saved for this child yet.";
+        return;
+      }
+      if (!shown.length) {
+        $("list-hint").textContent = "No " + labels[filter] + " for this child yet.";
+        return;
+      }
+      $("list-hint").textContent = "Showing " + shown.length + " " + labels[filter] + ", newest first." +
+        (reports.loadFailed ? " Some reports could not be loaded." : "");
+
+      shown.forEach(function (r) {
+        var card = document.createElement("article");
+        card.className = "report " + (r.category === "health" ? "health" : "academic");
+
+        var top = document.createElement("div");
+        top.className = "report-top";
+        var pill = document.createElement("span");
+        pill.className = "pill " + (r.category === "health" ? "health" : "academic");
+        pill.textContent = r.category === "health" ? "Healthcare" : "Academic";
+        var date = document.createElement("span");
+        date.className = "meta";
+        date.textContent = fmt(r.date);
+        top.append(pill, date);
+
+        var title = document.createElement("h3");
+        title.textContent = r.title;
+        var meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = r.kind + " · " + r.by;
+        var body = document.createElement("p");
+        body.className = "body";
+        body.textContent = r.body || "";
+
+        card.append(top, title, meta);
+        if (r.body) card.appendChild(body);
+        box.appendChild(card);
+      });
+    }
+
+    async function openChild(raw) {
+      var token = ++loadToken;
+      var btn = $("search-btn");
+      var msg = $("search-msg");
+      raw = String(raw || "").trim();
+      if (!raw) return;
+
+      btn.disabled = true;
+      btn.textContent = "Loading...";
+      msg.textContent = "";
+
+      try {
+        var c = await fetchChild(raw);
+        if (token !== loadToken) return;
+
+        if (c && c.error) {
+          msg.textContent = "Could not reach the database. Check your connection and try again.";
           $("child-panel").hidden = true;
           return;
         }
-        childId = id;
-        $("search-msg").textContent = "";
-        $("child-name").textContent = c.name;
+        if (!c) {
+          msg.textContent = "No child found for that ID. Check the ID, or ask the ASHA worker to confirm it.";
+          $("child-panel").hidden = true;
+          return;
+        }
+
+        $("child-name").textContent = c.name || "";
         $("child-id").textContent = "Child ID " + c.id;
         var facts = $("facts");
         facts.textContent = "";
@@ -294,35 +425,46 @@
           fact("Village", c.village),
           fact("Guardian", c.guardianName)
         );
-        reports = collect(id);
+
+        reports = await collect(c.id);
+        if (token !== loadToken) return;
+
         renderSummary();
         renderList();
         $("child-panel").hidden = false;
         $("child-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (err) {
+        console.error(err);
+        msg.textContent = "Something went wrong while loading reports. Please try again.";
+      } finally {
+        if (token === loadToken) {
+          btn.disabled = false;
+          btn.textContent = "Show reports";
+        }
       }
+    }
 
-      $("search-form").addEventListener("submit", function (e) {
-        e.preventDefault();
-        openChild(normId($("q").value));
-      });
+    $("search-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      openChild($("q").value);
+    });
 
-      Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
-        btn.addEventListener("click", function () {
-          filter = btn.getAttribute("data-filter");
-          Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (b) {
-            b.setAttribute("aria-pressed", b === btn ? "true" : "false");
-          });
-          renderList();
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
+      btn.addEventListener("click", function () {
+        filter = btn.getAttribute("data-filter");
+        Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (b) {
+          b.setAttribute("aria-pressed", b === btn ? "true" : "false");
         });
+        renderList();
       });
+    });
 
-      // Open directly from ?child=CH-XXXX-XXXX
-      var param = new URLSearchParams(window.location.search).get("child");
-      if (param) {
-        $("q").value = normId(param);
-        openChild(normId(param));
-      }
-    })();
+    // Open directly from ?child=CH-XXXX-XXXX
+    var param = new URLSearchParams(window.location.search).get("child");
+    if (param) {
+      $("q").value = param.trim();
+      openChild(param);
+    }
   </script>
 </body>
 </html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Update vaccination report – JeevanSetu</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --navy: #17243b; --navy2: #243b5a; --blue: #3569b8; --line: #c9d6ea;
+      --muted: #5b6a80; --green: #138808; --orange: #f28c1b; --red: #9b1c1c;
+    }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .vx-wrap { max-width: 920px; margin: 0 auto; padding-bottom: 1rem; color: var(--navy); }
+    .back-link { display: inline-block; margin: 1rem 0 0.5rem; color: var(--blue); font-weight: 600; }
+    .page-title h1 { margin: 0.2rem 0 0.25rem; font-size: 1.8rem; color: var(--navy); }
+    .page-title .sub { margin: 0.1rem 0; color: var(--muted); }
+    .page-title .welcome { margin-top: 0.5rem; color: var(--muted); font-size: 0.95rem; }
+    .muted { color: var(--muted); font-size: 0.92rem; margin: 0.25rem 0; }
+
+    .card {
+      background: #fff; border: 1px solid var(--line); border-radius: 10px;
+      padding: 1.1rem 1.3rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(23,36,59,0.06);
+    }
+    .card h2 { margin: 0 0 0.5rem; font-size: 1.15rem; color: var(--navy); }
+    .eyebrow { margin: 0; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+    .btn, .btn-ghost, .btn-small {
+      border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; padding: 0.6rem 1.1rem;
+    }
+    .btn { background: var(--blue); color: #fff; border: 0; }
+    .btn:hover, .btn:focus-visible { background: var(--navy2); outline: 3px solid #9ec2f0; }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .btn-ghost { background: #fff; color: var(--navy2); border: 1px solid #9fb3d1; }
+    .btn-ghost:hover { background: #eef4fb; }
+    .btn-small { background: var(--navy2); color: #fff; border: 0; padding: 0.4rem 0.7rem; font-size: 0.88rem; white-space: nowrap; }
+    .btn-small:hover, .btn-small:focus-visible { background: var(--navy); outline: 3px solid #9ec2f0; }
+    .link-btn { background: none; border: 0; padding: 0; color: var(--blue); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+    /* Search */
+    .search-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .search-row input {
+      flex: 1 1 260px; padding: 0.65rem 0.75rem; border: 1px solid #9fb3d1; border-radius: 6px;
+      font: inherit; min-height: 2.6rem;
+    }
+    .search-row input:focus { outline: 3px solid #9ec2f0; border-color: var(--blue); }
+    .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.6rem; margin-top: 0.75rem; }
+    .result-card {
+      text-align: left; background: #f6f9fd; border: 1px solid var(--line); border-radius: 8px;
+      padding: 0.75rem; font: inherit; color: var(--navy); cursor: pointer; display: flex; flex-direction: column; gap: 0.15rem;
+    }
+    .result-card:hover, .result-card:focus-visible { border-color: var(--blue); background: #eaf2fc; outline: none; }
+    .result-card small { color: var(--muted); }
+
+    /* Child summary */
+    .child-head { display: flex; gap: 0.9rem; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+    .child-id-wrap { display: flex; gap: 0.9rem; align-items: center; }
+    .avatar {
+      width: 52px; height: 52px; border-radius: 50%; background: var(--blue); color: #fff;
+      display: grid; place-items: center; font-weight: 700; font-size: 1.3rem; flex: none;
+    }
+    .child-head h2 { margin: 0; }
+    .child-id { font-family: ui-monospace, Consolas, monospace; color: var(--muted); font-size: 0.95rem; }
+    .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.7rem 1rem; margin-top: 0.9rem; }
+    .fact { background: #f6f9fd; border-radius: 6px; padding: 0.5rem 0.65rem; }
+    .fact span { display: block; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .fact strong { font-size: 0.98rem; word-break: break-word; }
+    .cert-line { margin: 0.8rem 0 0; font-size: 0.95rem; }
+
+    /* Next vaccine */
+    .next { border-left: 6px solid var(--orange); }
+    .next.over { border-left-color: var(--red); }
+    .next.done { border-left-color: var(--green); }
+    .next h2 { font-size: 1.4rem; margin: 0.15rem 0 0.1rem; }
+    .next-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+    .next-row .muted { margin: 0; }
+    .next-due { font-size: 1.05rem; font-weight: 600; margin: 0.6rem 0 0; }
+
+    /* Progress */
+    .progress-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .progress { height: 10px; background: #e5ecf7; border-radius: 999px; overflow: hidden; }
+    .progress > div { height: 100%; width: 0; background: var(--green); transition: width 0.3s ease; }
+
+    /* Pills */
+    .pill { display: inline-block; font-size: 0.8rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+    .pill-ok { background: #e3f3e3; color: #0d5c06; }
+    .pill-over { background: #fde8e8; color: var(--red); }
+    .pill-soon { background: #fff1de; color: #8a4b00; }
+    .pill-up { background: #e5ecf7; color: var(--navy2); }
+
+    /* Schedule */
+    .stage-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+    .stage-head h3 { margin: 0; font-size: 1.05rem; color: var(--navy); }
+    .vx-list { display: grid; gap: 0.5rem; }
+    .vx {
+      display: grid; grid-template-columns: auto 1fr auto; gap: 0.8rem; align-items: center;
+      border: 1px solid var(--line); border-radius: 8px; padding: 0.6rem 0.8rem; background: #fff;
+    }
+    .vx.given { background: #f3faf3; border-color: #b9dcb9; }
+    .vx.ticked { border-color: var(--blue); background: #f4f8fe; }
+    .vx input[type="checkbox"] { width: 1.3rem; height: 1.3rem; accent-color: var(--green); cursor: pointer; }
+    .vx input[type="checkbox"]:disabled { cursor: not-allowed; }
+    .vx .name strong { display: block; font-size: 1rem; }
+    .vx .name small { display: block; color: var(--muted); font-size: 0.85rem; }
+    .vx .name .due { color: var(--navy2); font-weight: 600; margin-top: 0.15rem; }
+    .vx .right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; min-width: 150px; }
+    .vx input[type="date"] {
+      padding: 0.4rem 0.5rem; border: 1px solid #9fb3d1; border-radius: 6px; font: inherit; background: #fff; color: var(--navy);
+    }
+    .vx input[type="date"]:disabled { background: #f1f4f9; color: #8a97ab; }
+    .vx input[type="date"]:focus { outline: 3px solid #9ec2f0; border-color: var(--blue); }
+
+    /* Save bar */
+    .savebar {
+      position: sticky; bottom: 0; background: #fff; border: 1px solid var(--line);
+      border-radius: 10px; box-shadow: 0 -2px 10px rgba(23,36,59,0.08);
+      padding: 0.8rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+      margin: 1rem 0 2rem;
+    }
+    .savebar p { margin: 0; font-weight: 600; min-height: 1.2em; }
+    .ok-text { color: #0d5c06; }
+    .err { color: var(--red); }
+    .schedule-note { font-size: 0.85rem; color: var(--muted); margin: 0.5rem 0 0; }
+
+    @media (max-width: 600px) {
+      .vx { grid-template-columns: auto 1fr; }
+      .vx .right { grid-column: 2; align-items: flex-start; min-width: 0; }
+      .btn, .btn-ghost { width: 100%; text-align: center; }
+      .savebar .btn { width: auto; }
+    }
+  </style>
+</head>
+<body data-page="role" data-role="asha">
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
+        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
+          <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
+          <rect x="0" y="150" width="200" height="14" fill="#138808"/>
+        </svg>
+        <span class="brand-text">
+          <strong>JeevanSetu</strong>
+          <span>Child vaccination and development records</span>
+        </span>
+      </a>
+      <div class="dash-bar">
+        <span class="badge" id="role-badge">ASHA worker</span>
+        <span class="who" id="who"></span>
+        <button type="button" class="signout" id="signout">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+      <div class="empty guard" id="guard" hidden>
+        <p id="guard-text"></p>
+        <p><a class="primary-link" id="guard-link" href="index.html">Go to sign in</a></p>
+      </div>
+
+      <div id="content" hidden>
+        <div class="vx-wrap">
+          <a class="back-link" href="healthworker.html">&larr; Dashboard</a>
+
+          <div class="page-title">
+            <h1>Update vaccination report</h1>
+            <p class="sub" lang="hi">टीकाकरण रिपोर्ट अपडेट करें</p>
+            <p class="sub" lang="pa">ਟੀਕਾਕਰਨ ਰਿਪੋਰਟ ਅੱਪਡੇਟ ਕਰੋ</p>
+            <p class="welcome" id="welcome"></p>
+          </div>
+
+          <section class="card" aria-labelledby="h-search">
+            <h2 id="h-search">Find a child</h2>
+            <form id="search-form" class="search-row" role="search">
+              <label class="sr-only" for="q">Child Username or Name</label>
+              <input id="q" name="q" autocomplete="off" placeholder="Child Username (e.g. rahul_2024) or Name" required>
+              <button class="btn" type="submit">Search</button>
+            </form>
+            <p class="muted" id="search-msg" aria-live="polite"></p>
+            <div id="results" class="results"></div>
+          </section>
+
+          <div id="child-panel" hidden>
+            <section class="card" aria-label="Child details">
+              <div class="child-head">
+                <div class="child-id-wrap">
+                  <div class="avatar" id="avatar" aria-hidden="true"></div>
+                  <div>
+                    <h2 id="child-name"></h2>
+                    <div class="child-id" id="child-id"></div>
+                  </div>
+                </div>
+                <button type="button" class="btn-ghost" id="change-child">Change child</button>
+              </div>
+              <div class="facts" id="facts"></div>
+              <p class="cert-line" id="cert-line"></p>
+            </section>
+
+            <section class="card next" id="next-card" aria-live="polite"></section>
+
+            <section class="card" aria-labelledby="h-progress">
+              <div class="progress-head">
+                <h2 id="h-progress" style="margin:0;">Progress</h2>
+                <strong id="progress-text"></strong>
+              </div>
+              <div class="progress" role="progressbar" aria-labelledby="h-progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track">
+                <div id="progress-bar"></div>
+              </div>
+            </section>
+
+            <div id="stages"></div>
+
+            <p class="schedule-note">Schedule based on the National Immunization Schedule chart. Due dates are estimates from the date of birth.</p>
+
+            <div class="savebar">
+              <p id="save-msg" role="status" aria-live="polite"></p>
+              <button class="btn" id="save-btn" type="button">Save changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Made with ♡ by Jeevansetu</p>
+    </div>
+  </footer>
+
+  <script src="settings.js"></script>
+  <script src="schedule.js"></script>
+  <script type="module" src="app.js"></script>
+
+  <!-- FIREBASE EMBEDDED SCRIPT FOR VACCINATIONS -->
+  <script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import {
+      initializeFirestore, getFirestore, persistentLocalCache,
+      collection, doc, getDoc, getDocs, query, where, writeBatch
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA0jfGOn0KL_6i5skQuf1s6TWOm5XNyP6w",
+      authDomain: "syncedd.firebaseapp.com",
+      projectId: "syncedd",
+      storageBucket: "syncedd.firebasestorage.app",
+      messagingSenderId: "784392339011",
+      appId: "1:784392339011:web:36a0ef8994e21d2dda9ef6",
+      measurementId: "G-8YVJKBCGFL"
+    };
+
+    // Reuse the app/Firestore instance if another script already created one
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    let db;
+    try {
+      db = initializeFirestore(app, { localCache: persistentLocalCache() });
+    } catch (e) {
+      db = getFirestore(app);
+    }
+
+    // Fallback schedule if schedule.js is missing
+    const ITEMS = window.GSSchedule ? window.GSSchedule.ITEMS : [
+      { code: "BCG", desc: "Bacillus Calmette-Guérin", stage: "At Birth", months: 0 },
+      { code: "OPV-0", desc: "Oral Polio Vaccine 0", stage: "At Birth", months: 0 },
+      { code: "Hep-B", desc: "Hepatitis B birth dose", stage: "At Birth", months: 0 },
+      { code: "OPV-1", desc: "Oral Polio Vaccine 1", stage: "6 Weeks", weeks: 6 },
+      { code: "Penta-1", desc: "Pentavalent 1", stage: "6 Weeks", weeks: 6 },
+      { code: "Rota-1", desc: "Rotavirus Vaccine 1", stage: "6 Weeks", weeks: 6 },
+      { code: "OPV-2", desc: "Oral Polio Vaccine 2", stage: "10 Weeks", weeks: 10 },
+      { code: "Penta-2", desc: "Pentavalent 2", stage: "10 Weeks", weeks: 10 },
+      { code: "Rota-2", desc: "Rotavirus Vaccine 2", stage: "10 Weeks", weeks: 10 },
+      { code: "OPV-3", desc: "Oral Polio Vaccine 3", stage: "14 Weeks", weeks: 14 },
+      { code: "Penta-3", desc: "Pentavalent 3", stage: "14 Weeks", weeks: 14 },
+      { code: "Rota-3", desc: "Rotavirus Vaccine 3", stage: "14 Weeks", weeks: 14 },
+      { code: "MR-1", desc: "Measles & Rubella 1", stage: "9 Months", months: 9 }
+    ];
+
+    let currentChild = null;   // child document data
+    let currentDocId = null;   // Firestore document ID of the child (used for all paths)
+    let childVaccines = {};    // { vaccineCode: "YYYY-MM-DD" }
+
+    const MS_DAY = 86400000;
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+    function todayIso() { return iso(new Date()); }
+    function parse(s) { return new Date(s + "T00:00:00"); }
+    function fmt(s) { return parse(s).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+    function daysUntil(s) { return Math.round((parse(s) - parse(todayIso())) / MS_DAY); }
+    function titleCase(s) { return s.replace(/\w\S*/g, function (w) { return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }); }
+
+    function dueOf(dob, item) {
+      var d = parse(dob);
+      if (item.weeks != null) d.setDate(d.getDate() + item.weeks * 7);
+      else d.setMonth(d.getMonth() + item.months);
+      return iso(d);
+    }
+
+    function ageText(dob) {
+      var b = parse(dob), t = parse(todayIso());
+      var days = Math.floor((t - b) / MS_DAY);
+      var months = (t.getFullYear() - b.getFullYear()) * 12 + (t.getMonth() - b.getMonth());
+      if (t.getDate() < b.getDate()) months--;
+      if (months < 1) return days + (days === 1 ? " day" : " days");
+      if (months < 24) return months + " months";
+      var y = Math.floor(months / 12), m = months % 12;
+      return y + " years" + (m ? " " + m + " months" : "");
+    }
+
+    function dueText(due) {
+      var n = daysUntil(due);
+      if (n < 0) return "Overdue by " + (-n) + (n === -1 ? " day" : " days");
+      if (n === 0) return "Due today";
+      return "Due in " + n + (n === 1 ? " day" : " days");
+    }
+
+    const PILL = {
+      given: ["pill-ok", "Given"],
+      overdue: ["pill-over", "Overdue"],
+      soon: ["pill-soon", "Due soon"],
+      upcoming: ["pill-up", "Upcoming"]
+    };
+    function pill(kind) { return '<span class="pill ' + PILL[kind][0] + '">' + PILL[kind][1] + "</span>"; }
+
+    function statusOf(item) {
+      if (childVaccines[item.code]) {
+        return { kind: "given", date: childVaccines[item.code] };
+      }
+      var due = dueOf(currentChild.dob, item), n = daysUntil(due);
+      if (n < 0) return { kind: "overdue", due: due };
+      if (n <= 30) return { kind: "soon", due: due };
+      return { kind: "upcoming", due: due };
+    }
+
+    function setMsg(text, kind) {
+      var m = $("save-msg");
+      m.textContent = text;
+      m.className = kind === "err" ? "err" : kind === "ok" ? "ok-text" : "";
+    }
+
+    function renderNext(next, nextSt) {
+      var box = $("next-card");
+      if (!next) {
+        box.className = "card next done";
+        box.innerHTML = '<p class="eyebrow">Next vaccine</p><h2>All scheduled vaccines are recorded</h2><p class="muted">Nothing is due right now.</p>';
+        return;
+      }
+      var detail = "Due on " + fmt(nextSt.due) + " (" + dueText(nextSt.due) + ")";
+      box.className = "card next" + (nextSt.kind === "overdue" ? " over" : "");
+      box.innerHTML = '<p class="eyebrow">Next vaccine</p><div class="next-row"><div><h2>' + esc(next.code) + "</h2>" +
+        '<p class="muted">' + esc(next.desc) + " · " + esc(next.stage) + "</p></div>" +
+        pill(nextSt.kind) + '</div><p class="next-due">' + esc(detail) + "</p>";
+    }
+
+    function rowHtml(item, st) {
+      var v = esc(item.code), label = item.code, dueLine, cls = "vx", tickAttr, right;
+
+      if (st.kind === "given") {
+        cls += " given";
+        dueLine = '<span class="due">Recorded</span>';
+        tickAttr = " checked disabled";
+        right = pill("given") + '<input type="date" data-vax="' + v + '" value="' + esc(st.date) + '" min="' + esc(currentChild.dob) + '" max="' + todayIso() + '" disabled>';
+      } else {
+        tickAttr = "";
+        dueLine = '<span class="due">Due ' + esc(fmt(st.due)) + " · " + esc(dueText(st.due)) + "</span>";
+        right = pill(st.kind) + '<input type="date" data-vax="' + v + '" value="" disabled min="' + esc(currentChild.dob) + '" max="' + todayIso() + '">';
+      }
+
+      var tick = '<input type="checkbox" data-tick="' + v + '" ' + tickAttr + ' aria-label="Mark ' + v + ' as given">';
+      return '<div class="' + cls + '"><div>' + tick + '</div><div class="name"><strong>' + esc(label) + "</strong><small>" + esc(item.desc) + "</small>" + dueLine + "</div>" +
+        '<div class="right">' + right + "</div></div>";
+    }
+
+    function renderStages() {
+      var groups = [], map = {};
+      ITEMS.forEach(function (it) {
+        if (!map[it.stage]) { map[it.stage] = []; groups.push({ stage: it.stage, items: map[it.stage] }); }
+        map[it.stage].push(it);
+      });
+
+      $("stages").innerHTML = groups.map(function (g) {
+        var given = 0;
+        var rows = g.items.map(function (it) {
+          var st = statusOf(it);
+          if (st.kind === "given") given++;
+          return rowHtml(it, st);
+        }).join("");
+        return '<section class="card"><div class="stage-head"><h3>' + esc(g.stage) + "</h3>" +
+          '<span class="muted">' + given + " of " + g.items.length + " given</span></div>" +
+          '<div class="vx-list">' + rows + "</div></section>";
+      }).join("");
+    }
+
+    function renderAll() {
+      var given = 0, next = null, nextSt = null;
+
+      ITEMS.forEach(function (it) {
+        var st = statusOf(it);
+        if (st.kind === "given") given++;
+        if (!next && st.kind !== "given") { next = it; nextSt = st; }
+      });
+
+      var total = ITEMS.length, pct = Math.round((given / total) * 100);
+      $("progress-text").textContent = given + " of " + total + " vaccines given (" + pct + "%)";
+      $("progress-bar").style.width = pct + "%";
+      $("progress-track").setAttribute("aria-valuenow", String(pct));
+
+      renderNext(next, nextSt);
+      renderStages();
+    }
+
+    function fact(label, value) { return '<div class="fact"><span>' + esc(label) + "</span><strong>" + esc(value || "—") + "</strong></div>"; }
+
+    // 1. Load child profile AND vaccinations from Firestore (by document ID)
+    async function loadChildData(docId) {
+      try {
+        const childSnap = await getDoc(doc(db, "children", docId));
+        if (!childSnap.exists()) return false;
+
+        currentChild = childSnap.data();
+        currentDocId = childSnap.id;
+        if (!currentChild.childId) currentChild.childId = childSnap.id;
+
+        childVaccines = {};
+
+        // Fallback: vaccines map stored on the child document itself
+        const mapOnChild = currentChild.vaccines || {};
+        Object.keys(mapOnChild).forEach(function (code) {
+          if (mapOnChild[code] && mapOnChild[code].dateGiven) childVaccines[code] = mapOnChild[code].dateGiven;
+        });
+
+        // Main source: vaccinations subcollection
+        const vaxSnap = await getDocs(collection(db, "children", currentDocId, "vaccinations"));
+        vaxSnap.forEach(function (d) {
+          const data = d.data();
+          if (data && data.dateGiven) childVaccines[d.id] = data.dateGiven;
+        });
+
+        return true;
+      } catch (e) {
+        console.error("Error loading child:", e);
+        return false;
+      }
+    }
+
+    function displayChildUI() {
+      $("avatar").textContent = (currentChild.name || "?").charAt(0).toUpperCase();
+      $("child-name").textContent = currentChild.name || "";
+      $("child-id").textContent = "Username: " + currentChild.childId;
+      $("facts").innerHTML = fact("Age", ageText(currentChild.dob)) + fact("Date of birth", fmt(currentChild.dob)) + fact("Sex", currentChild.sex) + fact("Guardian", currentChild.guardianName) + fact("Mobile", currentChild.guardianMobile) + fact("Village", currentChild.village);
+
+      $("cert-line").innerHTML = currentChild.birthCertDataUrl
+        ? '<button type="button" class="link-btn" id="view-cert-btn">View birth certificate</button>'
+        : '<span class="muted">No birth certificate uploaded for this child.</span>';
+
+      $("child-panel").hidden = false;
+      $("results").innerHTML = "";
+      $("search-msg").textContent = "";
+      setMsg("");
+      renderAll();
+      $("child-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    async function openChild(docId) {
+      const ok = await loadChildData(docId);
+      if (!ok) {
+        $("search-msg").textContent = "Could not load this child. Check your connection and try again.";
+        return;
+      }
+      displayChildUI();
+    }
+
+    // Birth certificate viewer (event delegation, no timers)
+    $("cert-line").addEventListener("click", function (e) {
+      if (!e.target.closest("#view-cert-btn") || !currentChild || !currentChild.birthCertDataUrl) return;
+      fetch(currentChild.birthCertDataUrl)
+        .then(function (r) { return r.blob(); })
+        .then(function (blob) { window.open(URL.createObjectURL(blob), "_blank", "noopener"); })
+        .catch(function (err) { console.error(err); });
+    });
+
+    // 2. Search Firestore by Username (document ID) or Name
+    $("search-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var raw = $("q").value.trim();
+      var box = $("results");
+      if (!raw) return;
+      box.innerHTML = "Searching database...";
+      $("search-msg").textContent = "";
+
+      try {
+        var found = [];
+        var seen = {};
+        function add(id, data) {
+          if (seen[id]) return;
+          seen[id] = true;
+          found.push({ id: id, data: data });
+        }
+
+        // a) Exact username / document ID (try as typed, then lowercase)
+        var idTries = [raw];
+        if (raw.toLowerCase() !== raw) idTries.push(raw.toLowerCase());
+        for (var i = 0; i < idTries.length && !found.length; i++) {
+          if (idTries[i].indexOf("/") !== -1) continue; // not a valid doc ID
+          var snap = await getDoc(doc(db, "children", idTries[i]));
+          if (snap.exists()) add(snap.id, snap.data());
+        }
+
+        // b) Exact name match (case-sensitive in Firestore, so try a few variants)
+        if (!found.length) {
+          var nameTries = [raw];
+          [titleCase(raw), raw.toLowerCase(), raw.toUpperCase()].forEach(function (v) {
+            if (nameTries.indexOf(v) === -1) nameTries.push(v);
+          });
+          for (var j = 0; j < nameTries.length; j++) {
+            var nameSnap = await getDocs(query(collection(db, "children"), where("name", "==", nameTries[j])));
+            nameSnap.forEach(function (d) { add(d.id, d.data()); });
+          }
+        }
+
+        box.innerHTML = "";
+        if (!found.length) {
+          $("search-msg").textContent = 'No child found for "' + raw + '". Check the Username or exact spelling.';
+          return;
+        }
+
+        if (found.length === 1) {
+          await openChild(found[0].id);
+          return;
+        }
+
+        $("search-msg").textContent = found.length + " children found. Choose one:";
+        found.forEach(function (f) {
+          var c = f.data;
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "result-card";
+          btn.innerHTML = "<strong>" + esc(c.name) + "</strong><small>" + esc(c.childId || f.id) + "</small><small>" + esc(c.village) + (c.dob ? " · born " + esc(fmt(c.dob)) : "") + "</small>";
+          btn.addEventListener("click", function () { openChild(f.id); });
+          box.appendChild(btn);
+        });
+      } catch (err) {
+        box.innerHTML = "";
+        $("search-msg").textContent = "Search failed. Check your connection and Firestore rules.";
+        console.error(err);
+      }
+    });
+
+    $("change-child").addEventListener("click", function () {
+      currentChild = null;
+      currentDocId = null;
+      childVaccines = {};
+      $("child-panel").hidden = true;
+      $("q").focus();
+      $("q").select();
+    });
+
+    // Tick a box
+    $("stages").addEventListener("change", function (e) {
+      var t = e.target;
+      if (!t.matches("input[type='checkbox'][data-tick]")) return;
+      var row = t.closest(".vx");
+      var dateIn = row.querySelector("input[type='date']");
+      dateIn.disabled = !t.checked;
+      if (t.checked && !dateIn.value) dateIn.value = todayIso();
+      if (!t.checked) dateIn.value = "";
+      row.classList.toggle("ticked", t.checked);
+      setMsg("");
+    });
+
+    // 3. Save vaccinations to Firestore
+    //    Writes BOTH:
+    //      children/{id}/vaccinations/{code}   (subcollection document)
+    //      children/{id}  ->  vaccines.{code}  (map field on the child document)
+    $("save-btn").addEventListener("click", async function () {
+      if (!currentChild || !currentDocId) return;
+      var today = todayIso(), problems = [];
+      var currentWorker = sessionStorage.getItem("js_user") || "Unknown Worker";
+      var saveBtn = $("save-btn");
+
+      var batch = writeBatch(db);
+      var pending = {};   // code -> date, applied locally after a successful commit
+      var stamp = new Date().toISOString();
+      var vaccinesMap = {};
+
+      var inputs = $("stages").querySelectorAll("input[type='date'][data-vax]");
+      inputs.forEach(function (inp) {
+        var vaxCode = inp.getAttribute("data-vax");
+        var val = inp.value;
+
+        // Skip if untouched, disabled, or unchanged
+        if (inp.disabled || !val || childVaccines[vaxCode] === val) return;
+
+        if (val < currentChild.dob) {
+          problems.push(vaxCode + " is before the date of birth");
+        } else if (val > today) {
+          problems.push(vaxCode + " is in the future");
+        } else {
+          var record = { dateGiven: val, recordedBy: currentWorker, timestamp: stamp };
+          batch.set(doc(db, "children", currentDocId, "vaccinations", vaxCode), record);
+          vaccinesMap[vaxCode] = record;
+          pending[vaxCode] = val;
+        }
+      });
+
+      var count = Object.keys(pending).length;
+
+      if (!count) {
+        setMsg(problems.length ? "Not saved: " + problems.join("; ") + "." : "No changes to save.", problems.length ? "err" : "");
+        return;
+      }
+
+      // Also store on the child document so it is visible in the "children" collection
+      batch.set(doc(db, "children", currentDocId), {
+        vaccines: vaccinesMap,
+        vaccinesUpdatedAt: stamp,
+        vaccinesUpdatedBy: currentWorker
+      }, { merge: true });
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+
+      try {
+        await batch.commit();
+        Object.keys(pending).forEach(function (code) { childVaccines[code] = pending[code]; });
+        renderAll();
+        var parts = [count + " vaccine date(s) saved to Database."];
+        if (problems.length) parts.push("Not saved: " + problems.join("; ") + ".");
+        setMsg(parts.join(" "), problems.length ? "err" : "ok");
+      } catch (err) {
+        console.error(err);
+        var hint = err && err.code === "permission-denied"
+          ? "Permission denied by Firestore rules."
+          : "Failed to save. Check your connection.";
+        setMsg(hint, "err");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save changes";
+      }
+    });
+  </script>
+</body>
+</html>
