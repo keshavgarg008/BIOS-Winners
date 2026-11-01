@@ -5,6 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Parent page – JeevanSetu</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .dash-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .dash-card {
+      display: block;
+      background: #ffffff;
+      border: 1px solid #c9d6ea;
+      border-top: 6px solid #3569b8;
+      border-radius: 8px;
+      padding: 1.25rem;
+      color: #17243b;
+      text-decoration: none;
+    }
+    .dash-card:hover, .dash-card:focus-visible {
+      border-color: #3569b8;
+      box-shadow: 0 2px 8px rgba(23, 36, 59, 0.15);
+    }
+    .dash-card h2 { margin: 0 0 0.5rem; font-size: 1.2rem; }
+    .dash-card p { margin: 0.25rem 0; }
+    .dash-card .sub { color: #4a5a72; font-size: 0.95rem; }
+  </style>
 </head>
 <body data-page="role" data-role="parent">
   <a class="skip" href="#main">Skip to main content</a>
@@ -42,11 +67,25 @@
       <div id="content" hidden>
         <div class="page-head">
           <h1>Parent page</h1>
+          <p lang="hi">अभिभावक पेज</p>
+          <p lang="pa">ਮਾਪਿਆਂ ਦਾ ਪੰਨਾ</p>
           <p id="welcome"></p>
         </div>
-        <div class="empty">
-          <p>Your child’s vaccines, milestones and reminders will appear here.</p>
-        </div>
+
+        <nav class="dash-cards" aria-label="Parent options">
+          <a class="dash-card" href="register-child.html">
+            <h2>Register a child</h2>
+            <p>Add your child with guardian and village details.</p>
+            <p class="sub" lang="hi">बच्चे का पंजीकरण करें</p>
+            <p class="sub" lang="pa">ਬੱਚੇ ਦੀ ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਕਰੋ</p>
+          </a>
+          <a class="dash-card" href="parent-reports.html">
+            <h2>View child reports</h2>
+            <p>See healthcare and academic reports for your child in one place.</p>
+            <p class="sub" lang="hi">बच्चे की रिपोर्ट देखें</p>
+            <p class="sub" lang="pa">ਬੱਚੇ ਦੀਆਂ ਰਿਪੋਰਟਾਂ ਵੇਖੋ</p>
+          </a>
+        </nav>
       </div>
     </div>
   </main>

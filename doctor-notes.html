@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Treatment notes – JeevanSetu</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root { --navy: #17243b; --navy2: #243b5a; --blue: #3569b8; --line: #c9d6ea; --muted: #5b6a80; --red: #9b1c1c; --green: #0d5c06; }
+    .notes-wrap { max-width: 760px; margin: 0 auto; color: var(--navy); padding-bottom: 2rem; }
+    .back-link { display: inline-block; margin: 1rem 0 0.5rem; color: var(--blue); font-weight: 600; }
+    .page-title h1 { margin: 0.2rem 0 0.25rem; font-size: 1.8rem; }
+    .page-title .sub { margin: 0.1rem 0; color: var(--muted); }
+    .page-title .welcome { margin-top: 0.5rem; color: var(--muted); font-size: 0.95rem; }
+
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 1.2rem 1.4rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(23,36,59,0.06); }
+    .card h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
+    .hint { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; }
+
+    .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+    .field label { font-weight: 600; }
+    .field input, .field textarea {
+      padding: 0.6rem 0.7rem; border: 1px solid #9fb3d1; border-radius: 6px;
+      font: inherit; background: #fff; color: var(--navy); min-height: 2.6rem;
+    }
+    .field textarea { min-height: 7rem; resize: vertical; }
+    .field input:focus, .field textarea:focus { outline: 3px solid #9ec2f0; border-color: var(--blue); }
+    .field input[aria-invalid="true"], .field textarea[aria-invalid="true"] { border-color: var(--red); background: #fff6f6; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .child-info { font-size: 0.92rem; margin: 0; min-height: 1.2em; color: var(--muted); }
+    .child-info.ok { color: var(--green); font-weight: 600; }
+    .child-info.bad { color: var(--red); font-weight: 600; }
+    .counter { font-size: 0.82rem; color: var(--muted); text-align: right; }
+
+    .btn { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 0.7rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer; }
+    .btn:hover, .btn:focus-visible { background: var(--navy2); outline: 3px solid #9ec2f0; }
+    .form-msg { font-weight: 600; min-height: 1.2em; margin: 0.5rem 0 0; color: var(--red); }
+    .form-msg.ok { color: var(--green); }
+
+    .note-item { border-left: 4px solid var(--blue); background: #f6f9fd; border-radius: 6px; padding: 0.7rem 0.9rem; margin-top: 0.6rem; }
+    .note-item .meta { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .note-item p { margin: 0; white-space: pre-wrap; }
+    .empty-note { color: var(--muted); margin: 0.5rem 0 0; }
+
+    @media (max-width: 560px) { .row-2 { grid-template-columns: 1fr; } .btn { width: 100%; } }
+  </style>
+</head>
+<body data-page="role" data-role="doctor">
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
+        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
+          <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
+          <rect x="0" y="150" width="200" height="14" fill="#138808"/>
+        </svg>
+        <span class="brand-text">
+          <strong>JeevanSetu</strong>
+          <span>Child vaccination and development records</span>
+        </span>
+      </a>
+      <div class="dash-bar">
+        <span class="badge" id="role-badge">Doctor</span>
+        <span class="who" id="who"></span>
+        <button type="button" class="signout" id="signout">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+      <div class="empty guard" id="guard" hidden>
+        <p id="guard-text"></p>
+        <p><a class="primary-link" id="guard-link" href="index.html">Go to sign in</a></p>
+      </div>
+
+      <div id="content" hidden>
+        <div class="notes-wrap">
+          <a class="back-link" href="doctor.html">&larr; Dashboard</a>
+
+          <div class="page-title">
+            <h1>Treatment notes</h1>
+            <p class="sub" lang="hi">इलाज के नोट</p>
+            <p class="sub" lang="pa">ਇਲਾਜ ਦੇ ਨੋਟ</p>
+            <p class="welcome" id="welcome"></p>
+          </div>
+
+          <section class="card" aria-labelledby="h-note">
+            <h2 id="h-note">Add a treatment note</h2>
+            <p class="hint">Enter the child ID, the date of treatment, and what was done.</p>
+
+            <form id="note-form" novalidate>
+              <div class="row-2">
+                <div class="field">
+                  <label for="f-child">Child ID</label>
+                  <input id="f-child" autocomplete="off" placeholder="CH-XXXX-XXXX" aria-describedby="child-info">
+                  <p class="child-info" id="child-info" aria-live="polite"></p>
+                </div>
+                <div class="field">
+                  <label for="f-date">Date of treatment</label>
+                  <input id="f-date" type="date" required>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="f-note">Treatment note</label>
+                <textarea id="f-note" maxlength="500" required aria-describedby="note-count"></textarea>
+                <span class="counter" id="note-count">0 / 500</span>
+              </div>
+
+              <p class="form-msg" id="form-msg" role="status" aria-live="polite"></p>
+              <p><button class="btn" type="submit" id="save-btn">Save note</button></p>
+            </form>
+          </section>
+
+          <section class="card" aria-labelledby="h-list">
+            <h2 id="h-list">Notes for this child</h2>
+            <p class="hint" id="list-hint">Enter a Child ID above to see its notes.</p>
+            <div id="notes-list"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Made with ♡ by Jeevansetu</p>
+    </div>
+  </footer>
+
+  <script src="settings.js"></script>
+  <script src="store.js"></script>
+  <script type="module" src="app.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      var NOTES_KEY = "gs_notes";
+
+      function $(id) { return document.getElementById(id); }
+      function pad(n) { return String(n).padStart(2, "0"); }
+      function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+      function fmt(s) { return new Date(s + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+
+      var today = iso(new Date());
+      var idIn = $("f-child"), dateIn = $("f-date"), noteIn = $("f-note");
+      var childInfo = $("child-info"), msg = $("form-msg"), list = $("notes-list");
+      var listHint = $("list-hint"), counter = $("note-count");
+
+      dateIn.max = today;
+      dateIn.value = today;
+
+      function readNotes() {
+        try { return JSON.parse(localStorage.getItem(NOTES_KEY) || "[]"); } catch (e) { return []; }
+      }
+      function writeNotes(a) { localStorage.setItem(NOTES_KEY, JSON.stringify(a)); }
+      function normId(v) { return String(v || "").trim().toUpperCase(); }
+
+      // Looks up the typed Child ID in the same store the register page uses
+      function lookup() {
+        var id = normId(idIn.value);
+        if (!id) {
+          childInfo.textContent = "";
+          childInfo.className = "child-info";
+          return null;
+        }
+        var c = GSStore.getChild(id);
+        if (!c) {
+          childInfo.textContent = "No child with this ID on this device.";
+          childInfo.className = "child-info bad";
+          return null;
+        }
+        childInfo.textContent = c.name + " · born " + fmt(c.dob) + " · " + c.village;
+        childInfo.className = "child-info ok";
+        dateIn.min = c.dob;
+        return c;
+      }
+
+      function renderList() {
+        var id = normId(idIn.value);
+        list.textContent = "";
+        if (!id || !GSStore.getChild(id)) {
+          listHint.textContent = "Enter a Child ID above to see its notes.";
+          return;
+        }
+        var notes = readNotes().filter(function (n) { return n.childId === id; });
+        notes.sort(function (a, b) {
+          if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+          return a.createdAt < b.createdAt ? 1 : -1;
+        });
+        if (!notes.length) {
+          listHint.textContent = "No treatment notes yet for this child.";
+          return;
+        }
+        listHint.textContent = notes.length + (notes.length === 1 ? " note" : " notes") + ", newest first.";
+        notes.forEach(function (n) {
+          var item = document.createElement("div");
+          item.className = "note-item";
+          var meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = fmt(n.date) + " · saved by " + n.doctorDevice;
+          var body = document.createElement("p");
+          body.textContent = n.note;
+          item.append(meta, body);
+          list.appendChild(item);
+        });
+      }
+
+      idIn.addEventListener("input", function () {
+        lookup();
+        renderList();
+      });
+      noteIn.addEventListener("input", function () {
+        counter.textContent = noteIn.value.length + " / 500";
+      });
+
+      // Prefill from ?child=CH-XXXX-XXXX
+      var param = new URLSearchParams(window.location.search).get("child");
+      if (param) idIn.value = normId(param);
+      lookup();
+      renderList();
+
+      $("note-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        msg.textContent = "";
+        msg.className = "form-msg";
+
+        var c = lookup();
+        var date = dateIn.value;
+        var note = noteIn.value.trim();
+        var problems = [], firstBad = null;
+
+        function bad(el, text) {
+          problems.push(text);
+          if (!firstBad) firstBad = el;
+        }
+
+        if (!c) bad(idIn, "Enter a valid Child ID");
+        if (!date) bad(dateIn, "Choose the date of treatment");
+        else if (date > today) bad(dateIn, "The date cannot be in the future");
+        else if (c && date < c.dob) bad(dateIn, "The date is before the child's date of birth");
+        if (!note) bad(noteIn, "Write the treatment note");
+
+        if (problems.length) {
+          msg.textContent = problems.join(". ") + ".";
+          firstBad.focus();
+          return;
+        }
+
+        var all = readNotes();
+        all.push({
+          id: "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          childId: c.id,
+          date: date,
+          note: note,
+          doctorDevice: GSStore.deviceId(),
+          createdAt: new Date().toISOString(),
+          synced: false
+        });
+        writeNotes(all);
+
+        noteIn.value = "";
+        counter.textContent = "0 / 500";
+        msg.textContent = "Note saved on this device for " + c.name + ".";
+        msg.className = "form-msg ok";
+        renderList();
+      });
+    })();
+  </script>
+</body>
+</html>

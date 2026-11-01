@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Child reports – JeevanSetu</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root { --navy: #17243b; --navy2: #243b5a; --blue: #3569b8; --line: #c9d6ea; --muted: #5b6a80; --red: #9b1c1c; --green: #0d5c06; }
+    .rep-wrap { max-width: 860px; margin: 0 auto; color: var(--navy); padding-bottom: 2rem; }
+    .back-link { display: inline-block; margin: 1rem 0 0.5rem; color: var(--blue); font-weight: 600; }
+    .page-title h1 { margin: 0.2rem 0 0.25rem; font-size: 1.8rem; }
+    .page-title .sub { margin: 0.1rem 0; color: var(--muted); }
+    .page-title .welcome { margin-top: 0.5rem; color: var(--muted); font-size: 0.95rem; }
+
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(23,36,59,0.06); }
+    .card h2 { margin: 0 0 0.4rem; font-size: 1.15rem; }
+    .muted { color: var(--muted); font-size: 0.92rem; margin: 0.25rem 0; }
+
+    .search-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .search-row input { flex: 1 1 260px; padding: 0.65rem 0.75rem; border: 1px solid #9fb3d1; border-radius: 6px; font: inherit; min-height: 2.6rem; }
+    .search-row input:focus { outline: 3px solid #9ec2f0; border-color: var(--blue); }
+    .btn { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 0.6rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; }
+    .btn:hover, .btn:focus-visible { background: var(--navy2); outline: 3px solid #9ec2f0; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+    .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.6rem 0.9rem; margin-top: 0.7rem; }
+    .fact { background: #f6f9fd; border-radius: 6px; padding: 0.5rem 0.65rem; }
+    .fact span { display: block; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .fact strong { font-size: 0.98rem; word-break: break-word; }
+    .child-name { margin: 0; font-size: 1.3rem; }
+    .child-id { font-family: ui-monospace, Consolas, monospace; color: var(--muted); }
+
+    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-top: 0.9rem; }
+    .sum-box { border-radius: 8px; padding: 0.7rem; background: #f6f9fd; text-align: center; }
+    .sum-box strong { display: block; font-size: 1.5rem; }
+    .sum-box span { font-size: 0.85rem; color: var(--muted); }
+
+    .tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0 0.75rem; }
+    .tab { background: #fff; color: var(--navy2); border: 1px solid #9fb3d1; border-radius: 999px; padding: 0.4rem 0.9rem; font: inherit; font-weight: 600; cursor: pointer; }
+    .tab[aria-pressed="true"] { background: var(--navy2); color: #fff; border-color: var(--navy2); }
+    .tab:focus-visible { outline: 3px solid #9ec2f0; }
+
+    .report { border: 1px solid var(--line); border-left-width: 5px; border-radius: 8px; padding: 0.75rem 0.9rem; margin-top: 0.6rem; background: #fff; }
+    .report.health { border-left-color: #138808; }
+    .report.academic { border-left-color: #3569b8; }
+    .report-top { display: flex; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+    .report h3 { margin: 0.35rem 0 0.1rem; font-size: 1rem; }
+    .report .meta { font-size: 0.85rem; color: var(--muted); }
+    .report p.body { margin: 0.35rem 0 0; white-space: pre-wrap; }
+    .pill { font-size: 0.78rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; }
+    .pill.health { background: #e3f3e3; color: var(--green); }
+    .pill.academic { background: #e5ecf7; color: var(--navy2); }
+    .msg { font-weight: 600; margin: 0.5rem 0 0; }
+    .msg.err { color: var(--red); }
+
+    @media (max-width: 560px) { .summary { grid-template-columns: 1fr; } .btn { width: 100%; } }
+  </style>
+</head>
+<body data-page="role" data-role="parent">
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="index.html" aria-label="JeevanSetu home">
+        <svg class="brand-mark" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M26 150 A74 74 0 0 1 174 150" fill="none" stroke="#1B2A6B" stroke-width="16"/>
+          <circle cx="100" cy="112" r="22" fill="#F28C1B"/>
+          <rect x="0" y="150" width="200" height="14" fill="#138808"/>
+        </svg>
+        <span class="brand-text">
+          <strong>JeevanSetu</strong>
+          <span>Child vaccination and development records</span>
+        </span>
+      </a>
+      <div class="dash-bar">
+        <span class="badge" id="role-badge">Parent</span>
+        <span class="who" id="who"></span>
+        <button type="button" class="signout" id="signout">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap">
+      <div class="empty guard" id="guard" hidden>
+        <p id="guard-text"></p>
+        <p><a class="primary-link" id="guard-link" href="index.html">Go to sign in</a></p>
+      </div>
+
+      <div id="content" hidden>
+        <div class="rep-wrap">
+          <a class="back-link" href="parent.html">&larr; Dashboard</a>
+
+          <div class="page-title">
+            <h1>Child reports</h1>
+            <p class="sub" lang="hi">बच्चे की रिपोर्ट</p>
+            <p class="sub" lang="pa">ਬੱਚੇ ਦੀਆਂ ਰਿਪੋਰਟਾਂ</p>
+            <p class="welcome" id="welcome"></p>
+          </div>
+
+          <section class="card" aria-labelledby="h-search">
+            <h2 id="h-search">Find your child</h2>
+            <form id="search-form" class="search-row" role="search">
+              <label class="sr-only" for="q">Child ID</label>
+              <input id="q" autocomplete="off" placeholder="Child ID (CH-XXXX-XXXX)" required>
+              <button class="btn" type="submit">Show reports</button>
+            </form>
+            <p class="msg err" id="search-msg" role="alert"></p>
+          </section>
+
+          <div id="child-panel" hidden>
+            <section class="card" aria-label="Child details">
+              <p class="child-name" id="child-name"></p>
+              <p class="child-id" id="child-id"></p>
+              <div class="facts" id="facts"></div>
+              <div class="summary" aria-label="Report totals">
+                <div class="sum-box"><strong id="n-all">0</strong><span>All reports</span></div>
+                <div class="sum-box"><strong id="n-health">0</strong><span>Healthcare</span></div>
+                <div class="sum-box"><strong id="n-acad">0</strong><span>Academic</span></div>
+              </div>
+            </section>
+
+            <section class="card" aria-labelledby="h-reports">
+              <h2 id="h-reports">Reports</h2>
+              <div class="tabs" role="group" aria-label="Filter reports">
+                <button type="button" class="tab" data-filter="all" aria-pressed="true">All</button>
+                <button type="button" class="tab" data-filter="health" aria-pressed="false">Healthcare</button>
+                <button type="button" class="tab" data-filter="academic" aria-pressed="false">Academic</button>
+              </div>
+              <p class="muted" id="list-hint"></p>
+              <div id="reports"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Made with ♡ by Jeevansetu</p>
+    </div>
+  </footer>
+
+  <script src="settings.js"></script>
+  <script src="store.js"></script>
+  <script type="module" src="app.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      var S = GSStore;
+      var KEY_NOTES = "gs_notes";          // doctor notes (doctor-notes.html)
+      var KEY_VAX = "gs_vax";              // ASHA vaccination records (store.js)
+      var KEY_TEACHER = "gs_teacher_reports"; // teacher reports (teacher portal, to be built)
+      var childId = null, filter = "all", reports = [];
+
+      function $(id) { return document.getElementById(id); }
+      function read(k) { try { return JSON.parse(localStorage.getItem(k) || "[]"); } catch (e) { return []; } }
+      function normId(v) { return String(v || "").trim().toUpperCase(); }
+      function fmt(s) {
+        if (!s) return "";
+        var d = new Date(String(s).length <= 10 ? s + "T00:00:00" : s);
+        return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+      }
+      function fact(label, value) {
+        var f = document.createElement("div"); f.className = "fact";
+        var s = document.createElement("span"); s.textContent = label;
+        var st = document.createElement("strong"); st.textContent = value;
+        f.append(s, st);
+        return f;
+      }
+
+      // Vaccination records that have not been replaced by a later entry
+      function currentVax(id) {
+        var all = read(KEY_VAX);
+        var replaced = {};
+        all.forEach(function (e) { (e.parents || []).forEach(function (p) { replaced[p] = true; }); });
+        return all.filter(function (e) { return e.childId === id && !replaced[e.id]; });
+      }
+
+      // Collect healthcare and academic reports into one list
+      function collect(id) {
+        var list = [];
+        currentVax(id).forEach(function (e) {
+          list.push({
+            category: "health", kind: "Vaccination", date: e.date,
+            title: e.vaccine + " given", by: "ASHA worker",
+            body: "Recorded on " + fmt((e.ts || "").slice(0, 10))
+          });
+        });
+        read(KEY_NOTES).filter(function (n) { return n.childId === id; }).forEach(function (n) {
+          list.push({
+            category: "health", kind: "Treatment note", date: n.date,
+            title: "Doctor's treatment note", by: "Doctor", body: n.note
+          });
+        });
+        read(KEY_TEACHER).filter(function (r) { return r.childId === id; }).forEach(function (r) {
+          list.push({
+            category: "academic", kind: r.subject || "Teacher report", date: r.date,
+            title: r.subject || "Teacher report", by: r.teacher ? "Teacher: " + r.teacher : "Teacher", body: r.note
+          });
+        });
+        list.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+        return list;
+      }
+
+      function renderSummary() {
+        var h = reports.filter(function (r) { return r.category === "health"; }).length;
+        var a = reports.filter(function (r) { return r.category === "academic"; }).length;
+        $("n-all").textContent = reports.length;
+        $("n-health").textContent = h;
+        $("n-acad").textContent = a;
+      }
+
+      function renderList() {
+        var box = $("reports");
+        box.textContent = "";
+        var shown = reports.filter(function (r) { return filter === "all" || r.category === filter; });
+        var labels = { all: "reports", health: "healthcare reports", academic: "academic reports" };
+
+        if (!reports.length) {
+          $("list-hint").textContent = "No reports saved on this device for this child yet.";
+          return;
+        }
+        if (!shown.length) {
+          $("list-hint").textContent = "No " + labels[filter] + " for this child yet.";
+          return;
+        }
+        $("list-hint").textContent = "Showing " + shown.length + " " + labels[filter] + ", newest first.";
+
+        shown.forEach(function (r) {
+          var card = document.createElement("article");
+          card.className = "report " + (r.category === "health" ? "health" : "academic");
+
+          var top = document.createElement("div");
+          top.className = "report-top";
+          var pill = document.createElement("span");
+          pill.className = "pill " + (r.category === "health" ? "health" : "academic");
+          pill.textContent = r.category === "health" ? "Healthcare" : "Academic";
+          var date = document.createElement("span");
+          date.className = "meta";
+          date.textContent = fmt(r.date);
+          top.append(pill, date);
+
+          var title = document.createElement("h3");
+          title.textContent = r.title;
+          var meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = r.kind + " · " + r.by;
+          var body = document.createElement("p");
+          body.className = "body";
+          body.textContent = r.body || "";
+
+          card.append(top, title, meta);
+          if (r.body) card.appendChild(body);
+          box.appendChild(card);
+        });
+      }
+
+      function openChild(id) {
+        var c = S.getChild(id);
+        if (!c) {
+          $("search-msg").textContent = "No child found on this device for that ID. Check the ID, or ask the ASHA worker to confirm it.";
+          $("child-panel").hidden = true;
+          return;
+        }
+        childId = id;
+        $("search-msg").textContent = "";
+        $("child-name").textContent = c.name;
+        $("child-id").textContent = "Child ID " + c.id;
+        var facts = $("facts");
+        facts.textContent = "";
+        facts.append(
+          fact("Date of birth", fmt(c.dob)),
+          fact("Sex", c.sex),
+          fact("Village", c.village),
+          fact("Guardian", c.guardianName)
+        );
+        reports = collect(id);
+        renderSummary();
+        renderList();
+        $("child-panel").hidden = false;
+        $("child-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      $("search-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        openChild(normId($("q").value));
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
+        btn.addEventListener("click", function () {
+          filter = btn.getAttribute("data-filter");
+          Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (b) {
+            b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+          });
+          renderList();
+        });
+      });
+
+      // Open directly from ?child=CH-XXXX-XXXX
+      var param = new URLSearchParams(window.location.search).get("child");
+      if (param) {
+        $("q").value = normId(param);
+        openChild(normId(param));
+      }
+    })();
+  </script>
+</body>
+</html>

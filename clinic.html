@@ -5,6 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Clinic page – JeevanSetu</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Doctor ID is the doctor's name. Label it in the header when app.js fills #who. */
+    .dash-bar .who:empty { display: none; }
+    .dash-bar .who:not(:empty)::before {
+      content: "Doctor ID: ";
+      font-weight: 400;
+      opacity: 0.85;
+    }
+    .dash-bar .who:not(:empty) { font-weight: 700; }
+
+    .dash-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .dash-card {
+      display: block;
+      background: #ffffff;
+      border: 1px solid #c9d6ea;
+      border-top: 6px solid #3569b8;
+      border-radius: 8px;
+      padding: 1.25rem;
+      color: #17243b;
+      text-decoration: none;
+    }
+    .dash-card:hover, .dash-card:focus-visible {
+      border-color: #3569b8;
+      box-shadow: 0 2px 8px rgba(23, 36, 59, 0.15);
+    }
+    .dash-card h2 { margin: 0 0 0.5rem; font-size: 1.2rem; }
+    .dash-card p { margin: 0.25rem 0; }
+    .dash-card .sub { color: #4a5a72; font-size: 0.95rem; }
+
+    .sync-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      background: #243b5a;
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+    }
+    .sync-strip .dot {
+      display: inline-block;
+      width: 0.7rem;
+      height: 0.7rem;
+      border-radius: 50%;
+      background: #7fd17f;
+      margin-right: 0.4rem;
+    }
+    .sync-strip.is-offline .dot { background: #f28c1b; }
+  </style>
 </head>
 <body data-page="role" data-role="doctor">
   <a class="skip" href="#main">Skip to main content</a>
@@ -42,11 +96,31 @@
       <div id="content" hidden>
         <div class="page-head">
           <h1>Clinic page</h1>
+          <p lang="hi">क्लिनिक पेज</p>
+          <p lang="pa">ਕਲੀਨਿਕ ਪੰਨਾ</p>
           <p id="welcome"></p>
         </div>
-        <div class="empty">
-          <p>Clinic records and conflicts to review will appear here.</p>
+
+        <!-- Offline/online status (display only) -->
+        <div class="sync-strip" id="sync-strip" role="status" aria-live="polite">
+          <span><span class="dot"></span><span id="net-status">Online</span></span>
+          <span>Records waiting to sync: <strong id="pending-count">0</strong></span>
         </div>
+
+        <nav class="dash-cards" aria-label="Clinic options">
+          <a class="dash-card" href="register-child.html">
+            <h2>Register a child</h2>
+            <p>Add a new child with guardian and village details.</p>
+            <p class="sub" lang="hi">बच्चे का पंजीकरण करें</p>
+            <p class="sub" lang="pa">ਬੱਚੇ ਦੀ ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਕਰੋ</p>
+          </a>
+          <a class="dash-card" href="doctor-notes.html">
+            <h2>Add treatment note</h2>
+            <p>Record the treatment given, with the child ID and date.</p>
+            <p class="sub" lang="hi">इलाज का नोट जोड़ें</p>
+            <p class="sub" lang="pa">ਇਲਾਜ ਦਾ ਨੋਟ ਜੋੜੋ</p>
+          </a>
+        </nav>
       </div>
     </div>
   </main>
@@ -58,7 +132,31 @@
   </footer>
 
   <script src="settings.js"></script>
-  <!-- Updated to module for Firebase compatibility -->
+  <!-- Module for Firebase compatibility -->
   <script type="module" src="app.js"></script>
+  <script>
+    /* Offline/online status (display only) */
+    (function () {
+      var strip = document.getElementById("sync-strip");
+      var netText = document.getElementById("net-status");
+      var pending = document.getElementById("pending-count");
+
+      function showNet() {
+        var online = navigator.onLine;
+        netText.textContent = online ? "Online" : "Offline. Changes are saved on this device.";
+        strip.classList.toggle("is-offline", !online);
+      }
+
+      function showPending() {
+        var n = parseInt(localStorage.getItem("gs_pending") || "0", 10);
+        pending.textContent = isNaN(n) ? "0" : String(n);
+      }
+
+      window.addEventListener("online", showNet);
+      window.addEventListener("offline", showNet);
+      showNet();
+      showPending();
+    })();
+  </script>
 </body>
 </html>
