@@ -1,0 +1,90 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Profiles are stored under the username, which is the part of the login email before "@"
+    function myUsername() {
+      return request.auth.token.email.split('@')[0];
+    }
+
+    function hasProfile() {
+      return signedIn() && exists(/databases/$(db)/documents/users/$(myUsername()));
+    }
+
+    function profile() {
+      return get(/databases/$(db)/documents/users/$(myUsername())).data;
+    }
+
+    function inVillage(v) {
+      return hasProfile() && profile().villageId == v;
+    }
+
+    // USER PROFILES
+    match /users/{userId} {
+      allow read: if signedIn();
+
+      // A user can create only their own profile (the login email must match the document ID)
+      allow create: if signedIn()
+                    && request.auth.token.email == userId + "@jeevansetu.local"
+                    && request.resource.data.authUid == request.auth.uid;
+
+      allow update: if signedIn()
+                    && resource.data.authUid == request.auth.uid
+                    && request.resource.data.authUid == request.auth.uid;
+
+      allow delete: if false;
+    }
+
+    // CHILDREN (temporary: these pages don't use Firebase Auth yet)
+    match /children/{childId} {
+      allow read, write: if true;
+
+      match /vaccinations/{vaxCode} {
+        allow read, write: if true;
+      }
+      match /performance/{entryId} {
+        allow read, write: if true;
+      }
+      match /notes/{noteId} {
+        allow read, write: if true;
+      }
+
+      // SYNC OPS (new): created once, never changed or deleted
+      match /ops/{opId} {
+        allow read: if true;
+        allow create: if request.resource.data.id == opId;
+        allow update, delete: if false;
+      }
+
+      // SYNC COUNTER (new): only ever goes up by exactly one
+      match /meta/counter {
+        allow read: if true;
+        allow create: if request.resource.data.n == 1;
+        allow update: if request.resource.data.n == resource.data.n + 1;
+        allow delete: if false;
+      }
+    }
+
+    // VILLAGE EVENTS
+    // Note: this checks profile().villageId, but registration saves "place" instead.
+    // Decide how villages are stored before relying on this rule.
+    match /villages/{v}/events/{id} {
+      allow read: if inVillage(v);
+
+      allow create: if inVillage(v)
+                    && request.resource.data.authorUid == request.auth.uid
+                    && request.resource.data.villageId == v;
+
+      allow update: if inVillage(v)
+                    && resource.data.authorUid == request.auth.uid
+                    && request.resource.data.authorUid == request.auth.uid
+                    && request.resource.data.villageId == v;
+
+      allow delete: if false;
+    }
+  }
+}

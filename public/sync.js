@@ -1,8 +1,14 @@
-// JeevanSetu reliable sync: local outbox + upload + server read-back verification.
+// JeevanSetu reliable sync.
+// Layer 1: local outbox + upload + server read-back verification.
+// Layer 2: every job is also recorded as HLC-stamped ops and pushed through
+// the resumable Firestore transport, so devices can merge without losing data.
+import { Device, syncOnce } from "./sync-core.js";
+import { createFirestoreTransport } from "./sync-firestore.js";
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, getDocFromServer, writeBatch
+  doc, collection, getDocFromServer, getDocs, writeBatch, runTransaction,
+  query, where, orderBy, limit
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -23,9 +29,45 @@ try {
   db = getFirestore(app);
 }
 
+const fsFns = { doc, collection, runTransaction, getDocs, query, where, orderBy, limit };
+
 const OUTBOX_KEY = "js_outbox";
-const STEP_TIMEOUT_MS = 12000;   // max wait per network step
-const RETRY_MS = 5000;           // retry interval while anything is waiting
+const DEVICE_KEY = "js_device";          // serialized sync-core Device
+const CURSOR_KEY = "js_cursors";         // { childId: { pushedSeq, pullSeq } }
+const NODE_KEY = "js_node_id";
+const STEP_TIMEOUT_MS = 12000;           // max wait per network step
+const RETRY_MS = 5000;                   // retry interval while anything is waiting
+
+// ---------- stable device id ----------
+function nodeId() {
+  let id = localStorage.getItem(NODE_KEY);
+  if (!id) {
+    id = "D" + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+    localStorage.setItem(NODE_KEY, id);
+  }
+  return id;
+}
+
+// ---------- sync-core device (persisted so op sequence numbers never repeat) ----------
+let device;
+try {
+  const raw = localStorage.getItem(DEVICE_KEY);
+  device = raw ? Device.fromSnapshot(JSON.parse(raw)) : new Device(nodeId());
+} catch (e) {
+  console.error("device state unreadable, starting a new op log", e);
+  device = new Device(nodeId());
+}
+function saveDevice() {
+  try { localStorage.setItem(DEVICE_KEY, JSON.stringify(device.snapshot())); }
+  catch (e) { console.error("could not save device state", e); }
+}
+
+function readCursors() {
+  try { return JSON.parse(localStorage.getItem(CURSOR_KEY) || "{}"); } catch (e) { return {}; }
+}
+function writeCursors(c) {
+  try { localStorage.setItem(CURSOR_KEY, JSON.stringify(c)); } catch (e) { console.error(e); }
+}
 
 // ---------- outbox (durable local queue) ----------
 function readBox() {
@@ -69,6 +111,71 @@ function matches(sent, server) {
   if (server === undefined || server === null) return false;
   if (typeof sent !== "object" || sent === null) return sent === server;
   return Object.keys(sent).every(function (k) { return matches(sent[k], server[k]); });
+}
+
+// ---------- turn a job's document writes into sync ops ----------
+//   children/{id}                      -> one "set" op per top-level field
+//   children/{id}/vaccinations/{code}  -> a "vax" op (date taken from the data)
+//   children/{id}/performance/{entry}  -> an "entry" op
+//   children/{id}/notes/{entry}        -> an "entry" op
+// Other paths (users, villages) are not synced as ops.
+function opsFromWrites(writes) {
+  let made = 0;
+  for (const w of writes) {
+    const p = w.path.split("/");
+    if (p[0] !== "children" || !p[1]) continue;
+    const childId = p[1];
+    try {
+      if (p.length === 2) {
+        for (const k of Object.keys(w.data || {})) device.setField(childId, k, w.data[k]);
+        made++;
+      } else if (p.length === 4 && p[2] === "vaccinations") {
+        const date = w.data && (w.data.date || w.data.givenOn || w.data.administeredOn);
+        if (date) { device.setVaccine(childId, p[3], String(date)); made++; }
+      } else if (p.length === 4 && (p[2] === "performance" || p[2] === "notes")) {
+        device.addEntry(childId, p[2] + ":" + p[3], w.data || {});
+        made++;
+      }
+    } catch (e) {
+      console.error("could not record op for " + w.path, e);
+    }
+  }
+  if (made) saveDevice();
+  return made;
+}
+
+// ---------- push/pull of the op log, one child at a time ----------
+// syncOnce reads device.log and calls device.receive. This wrapper shows it only
+// this child's ops (original seq numbers kept) and forwards received ops to the
+// real device, so cursors stay correct and nothing is renumbered.
+function viewFor(childId) {
+  return {
+    get log() { return device.log.filter(function (o) { return o.childId === childId; }); },
+    receive: function (ops) { return device.receive(ops); }
+  };
+}
+
+async function syncOps() {
+  const cursors = readCursors();
+  const childIds = Object.keys(device.replicas);
+  for (const childId of childIds) {
+    const cur = cursors[childId] || { pushedSeq: 0, pullSeq: 0 };
+    const base = createFirestoreTransport(fsFns, db, childId);
+    const transport = {
+      push: function (ops) { return withTimeout(base.push(ops)); },
+      pull: function (after, lim) { return withTimeout(base.pull(after, lim)); }
+    };
+    await syncOnce(viewFor(childId), transport, cur, {
+      onProgress: function (c) {
+        cursors[childId] = { pushedSeq: c.pushedSeq, pullSeq: c.pullSeq };
+        writeCursors(cursors);
+        saveDevice();
+      }
+    });
+    cursors[childId] = { pushedSeq: cur.pushedSeq, pullSeq: cur.pullSeq };
+    writeCursors(cursors);
+    saveDevice();
+  }
 }
 
 // ---------- one job = document writes that must succeed together ----------
@@ -127,6 +234,8 @@ async function flush() {
         console.warn("Sync will retry:", job.label, job.lastError);
       }
     }
+    // Layer 2: op log. A failure here never blocks Layer 1.
+    try { await syncOps(); } catch (err) { console.warn("Op sync will retry:", (err && err.message) || err); }
   } finally {
     running = false;
     emit();
@@ -160,6 +269,7 @@ document.addEventListener("visibilitychange", function () { if (!document.hidden
 
 // Saves the job to the local outbox FIRST, then starts upload + verify. Returns the job id.
 function queue(label, writes) {
+  opsFromWrites(writes);                 // record ops locally before any network call
   const job = {
     id: "J-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
     label: label,
@@ -233,7 +343,11 @@ window.JSSync = {
   flush: flush,
   onChange: onChange,
   counts: counts,
-  mountBanner: mountBanner
+  mountBanner: mountBanner,
+  // for debugging in the browser console
+  debug: function () {
+    return { nodeId: device.nodeId, ops: device.log.length, cursors: readCursors() };
+  }
 };
 
 flush(); // resume anything left over from a previous session
