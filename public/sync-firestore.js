@@ -12,6 +12,8 @@ export function createFirestoreTransport(fs, db, childId) {
   const counterRef = doc(db, "children", childId, "meta", "counter");
   const opRef = (id) => doc(db, "children", childId, "ops", id);
 
+  // Firestore document IDs cannot contain "/", and ours look like "N0:12", which is fine.
+  // Ops are stored with a serverSeq. Existing ops are never rewritten.
   async function push(ops) {
     // One transaction per op keeps each transaction small and the counter exact.
     for (const op of ops) {
