@@ -13,28 +13,19 @@ const SHELL_CACHE = "jeevansetu-shell-" + VERSION;
 const RUNTIME_CACHE = "jeevansetu-runtime-" + VERSION;
 
 // Edit this list to match your real file names.
+// Inside sw.js
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./offline.html",
-  "./manifest.webmanifest",
-  "./pwa.js",
+  "./register.html",
+  "./manifest.json",
   "./style.css",
-  "./settings.js",
-  "./store.js",
   "./app.js",
+  "./settings.js",
   "./schedule.js",
   "./healthworker.html",
-  "./school.html",
-  "./parent.html",
-  "./doctor.html",
-  "./update-vaccinations.html",
-  "./class-performance.html",
-  "./child-reports.html",
-  "./doctor-notes.html",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/icon-maskable-512.png"
+  "./register-child.html",
+  "./update-vaccination.html"
 ];
 
 // Firebase SDK entry points used by the pages (cached so the app can start offline)

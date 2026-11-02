@@ -1,0 +1,16 @@
+{
+  "name": "JeevanSetu Health",
+  "short_name": "JeevanSetu",
+  "description": "Offline-first child vaccination and development records",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3569b8",
+  "icons": [
+    {
+      "src": "https://www.gstatic.com/images/icons/material/system/2x/health_and_safety_black_48dp.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    }
+  ]
+}
